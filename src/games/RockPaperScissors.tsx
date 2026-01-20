@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Clock, Trophy, XCircle, Minus } from 'lucide-react';
-import { supabase, type Player } from '../lib/supabase';
+import { Clock, Trophy, XCircle, Minus, Target } from 'lucide-react';
+import { supabase, TABLES, type Player, type GameSession } from '../lib/supabase';
+import { RPS_AI_MESSAGES } from '../lib/constants';
 
 type Choice = 'rock' | 'paper' | 'scissors' | null;
 type Result = 'win' | 'lose' | 'draw' | null;
@@ -16,14 +17,13 @@ type RoundResult = {
 
 type Props = {
   player: Player;
-  isActive: boolean;
-  onComplete: (score: number, time?: number) => void;
+  gameSession: GameSession;
 };
 
 const TOTAL_ROUNDS = 5;
-const COUNTDOWN_DURATION = 5;
+const COUNTDOWN_DURATION = 3;
 const SELECTION_DURATION = 10;
-const RESULT_DISPLAY_DURATION = 3;
+const RESULT_DISPLAY_DURATION = 2;
 
 const POINTS = {
   win: 3,
@@ -32,18 +32,18 @@ const POINTS = {
 };
 
 const CHOICES: { value: Choice; emoji: string; label: string }[] = [
-  { value: 'rock', emoji: '✊', label: 'Rock' },
-  { value: 'paper', emoji: '🖐️', label: 'Paper' },
-  { value: 'scissors', emoji: '✌️', label: 'Scissors' },
+  { value: 'rock', emoji: '✊', label: 'ROCK' },
+  { value: 'paper', emoji: '🖐️', label: 'PAPER' },
+  { value: 'scissors', emoji: '✌️', label: 'SCISSORS' },
 ];
 
-const getResult = (player: Choice, bot: Choice): Result => {
-  if (!player || !bot) return 'lose';
-  if (player === bot) return 'draw';
+const getResult = (playerChoice: Choice, bot: Choice): Result => {
+  if (!playerChoice || !bot) return 'lose';
+  if (playerChoice === bot) return 'draw';
   if (
-    (player === 'rock' && bot === 'scissors') ||
-    (player === 'paper' && bot === 'rock') ||
-    (player === 'scissors' && bot === 'paper')
+    (playerChoice === 'rock' && bot === 'scissors') ||
+    (playerChoice === 'paper' && bot === 'rock') ||
+    (playerChoice === 'scissors' && bot === 'paper')
   ) {
     return 'win';
   }
@@ -55,7 +55,11 @@ const getBotChoice = (): Choice => {
   return choices[Math.floor(Math.random() * 3)];
 };
 
-export default function RockPaperScissors({ player, isActive, onComplete }: Props) {
+const getRandomMessage = (messages: string[]) => {
+  return messages[Math.floor(Math.random() * messages.length)];
+};
+
+const RockPaperScissors = ({ player, gameSession }: Props) => {
   const [phase, setPhase] = useState<'countdown' | 'selection' | 'result' | 'complete'>('countdown');
   const [currentRound, setCurrentRound] = useState(1);
   const [countdown, setCountdown] = useState(COUNTDOWN_DURATION);
@@ -67,33 +71,37 @@ export default function RockPaperScissors({ player, isActive, onComplete }: Prop
   const [totalScore, setTotalScore] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
   const [roundResults, setRoundResults] = useState<RoundResult[]>([]);
+  const [aiMessage, setAiMessage] = useState('');
   const hasCompleted = useRef(false);
+  const isActive = gameSession.current_stage === 2;
 
-  const updateProgress = useCallback(async (round: number, score: number, time: number, status: 'waiting' | 'playing' | 'finished', roundResults: string = '') => {
+  const updateProgress = useCallback(async (round: number, score: number, time: number, status: 'waiting' | 'playing' | 'finished', roundResultsStr: string = '') => {
     try {
       const progress = Math.round((round / TOTAL_ROUNDS) * 100);
 
       await supabase
-        .from('player_progress')
+        .from(TABLES.playerProgress)
         .upsert({
           player_id: player.id,
           game_session_id: player.game_session_id,
           stage: 2,
           progress,
+          current_score: score,
           elapsed_time: time,
           status,
-          round_results: roundResults,
+          extra_data: { round_results: roundResultsStr },
           updated_at: new Date().toISOString(),
         }, { onConflict: 'player_id,game_session_id,stage' });
 
       if (round > 0) {
         await supabase
-          .from('stage_scores')
+          .from(TABLES.stageScores)
           .upsert({
             player_id: player.id,
             game_session_id: player.game_session_id,
             stage: 2,
             score: score,
+            time_taken: time,
           }, { onConflict: 'player_id,game_session_id,stage' });
       }
     } catch (err) {
@@ -117,6 +125,7 @@ export default function RockPaperScissors({ player, isActive, onComplete }: Prop
       hasCompleted.current = false;
     } else {
       updateProgress(0, 0, 0, 'waiting');
+      setAiMessage(getRandomMessage(RPS_AI_MESSAGES.thinking));
     }
   }, [isActive, updateProgress]);
 
@@ -130,6 +139,7 @@ export default function RockPaperScissors({ player, isActive, onComplete }: Prop
           setPhase('selection');
           setSelectionStartTime(Date.now());
           updateProgress(currentRound - 1, totalScore, totalTime, 'playing');
+          setAiMessage(getRandomMessage(RPS_AI_MESSAGES.thinking));
           return 0;
         }
         return prev - 1;
@@ -167,6 +177,15 @@ export default function RockPaperScissors({ player, isActive, onComplete }: Prop
     const gameResult = getResult(choice, bot);
     setResult(gameResult);
 
+    // Set AI message based on result
+    if (gameResult === 'win') {
+      setAiMessage(getRandomMessage(RPS_AI_MESSAGES.lose));
+    } else if (gameResult === 'lose') {
+      setAiMessage(getRandomMessage(RPS_AI_MESSAGES.win));
+    } else {
+      setAiMessage(getRandomMessage(RPS_AI_MESSAGES.draw));
+    }
+
     const roundPoints = POINTS[gameResult || 'lose'];
     const newTotalScore = totalScore + roundPoints;
     const newTotalTime = totalTime + timeTaken;
@@ -198,7 +217,6 @@ export default function RockPaperScissors({ player, isActive, onComplete }: Prop
           hasCompleted.current = true;
           setPhase('complete');
           updateProgress(TOTAL_ROUNDS, newTotalScore, newTotalTime, 'finished', resultsString);
-          onComplete(newTotalScore, newTotalTime);
         }
       } else {
         setCurrentRound(prev => prev + 1);
@@ -215,22 +233,23 @@ export default function RockPaperScissors({ player, isActive, onComplete }: Prop
 
   if (!isActive) {
     return (
-      <div className="w-full h-full flex items-center justify-center">
-        <p className="text-slate-400 text-lg">Waiting for game to start...</p>
+      <div className="w-full min-h-screen flex items-center justify-center p-6">
+        <p className="text-slate-400 text-xl font-mono">AWAITING SIGNAL...</p>
       </div>
     );
   }
 
   if (phase === 'countdown') {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center">
-        <div className="mb-4 flex items-center gap-4">
-          <span className="text-slate-400 text-lg">Round</span>
-          <div className="flex gap-1">
+      <div className="w-full min-h-screen flex flex-col items-center justify-center p-6">
+        {/* Round indicators */}
+        <div className="mb-6 flex items-center gap-4">
+          <span className="text-slate-400 font-mono">ROUND</span>
+          <div className="flex gap-2">
             {Array.from({ length: TOTAL_ROUNDS }).map((_, i) => (
               <div
                 key={i}
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold font-mono ${
                   i < currentRound - 1
                     ? roundResults[i]?.result === 'win'
                       ? 'bg-emerald-500 text-white'
@@ -238,7 +257,7 @@ export default function RockPaperScissors({ player, isActive, onComplete }: Prop
                       ? 'bg-slate-500 text-white'
                       : 'bg-red-500 text-white'
                     : i === currentRound - 1
-                    ? 'bg-orange-500 text-white ring-2 ring-orange-300'
+                    ? 'bg-gradient-to-br from-purple-500 to-pink-500 text-white ring-2 ring-pink-300'
                     : 'bg-slate-700 text-slate-400'
                 }`}
               >
@@ -248,15 +267,15 @@ export default function RockPaperScissors({ player, isActive, onComplete }: Prop
           </div>
         </div>
 
-        <p className="text-slate-400 text-xl mb-4">Round {currentRound} starting!</p>
-        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-500 to-yellow-500 flex items-center justify-center shadow-2xl shadow-orange-500/30">
-          <span className="text-white text-6xl font-bold">{countdown}</span>
+        <p className="text-slate-400 text-xl mb-6 font-mono">ROUND {currentRound} INITIATING</p>
+        <div className="w-36 h-36 rounded-full bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center shadow-2xl animate-pulse-glow">
+          <span className="text-white text-7xl font-bold font-display">{countdown}</span>
         </div>
-        <p className="text-white text-lg font-semibold mt-6">Get Ready!</p>
+        <p className="text-white text-xl font-bold mt-8 font-display tracking-wider">PREPARE YOURSELF</p>
 
         {totalScore > 0 && (
-          <div className="mt-4 text-slate-400">
-            Current Score: <span className="text-white font-bold">{totalScore}</span> points
+          <div className="mt-6 text-slate-400 font-mono">
+            CURRENT SCORE: <span className="text-cyan-400 font-bold">{totalScore}</span> PTS
           </div>
         )}
       </div>
@@ -268,37 +287,33 @@ export default function RockPaperScissors({ player, isActive, onComplete }: Prop
     const scorePercentage = Math.round((totalScore / maxPossibleScore) * 100);
 
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center animate-bounce-in p-4">
-        <div className={`border rounded-2xl p-6 text-center w-full max-w-md ${
-          totalScore >= 10
-            ? 'bg-emerald-500/20 border-emerald-500/50'
-            : totalScore >= 5
-            ? 'bg-yellow-500/20 border-yellow-500/50'
-            : 'bg-red-500/20 border-red-500/50'
+      <div className="w-full min-h-screen flex flex-col items-center justify-center p-6 animate-bounce-in">
+        <div className={`cyber-card rounded-2xl p-8 text-center w-full max-w-md ${
+          totalScore >= 10 ? 'neon-border' : totalScore >= 5 ? 'neon-border-purple' : 'neon-border-magenta'
         }`}>
-          <Trophy className={`w-12 h-12 mx-auto mb-3 ${
+          <Trophy className={`w-16 h-16 mx-auto mb-4 ${
             totalScore >= 10 ? 'text-yellow-400' : totalScore >= 5 ? 'text-slate-300' : 'text-orange-600'
           }`} />
-          <p className="text-white text-3xl font-bold mb-1">{totalScore} Points</p>
-          <p className="text-slate-400 text-sm mb-4">
-            {scorePercentage}% score | {totalTime.toFixed(2)}s total time
+          <p className="text-white text-4xl font-bold mb-2 font-display">{totalScore} <span className="text-2xl">PTS</span></p>
+          <p className="text-slate-400 mb-6 font-mono">
+            {scorePercentage}% EFFICIENCY | {totalTime.toFixed(2)}s TOTAL
           </p>
 
-          <div className="space-y-2">
-            <p className="text-slate-400 text-xs uppercase tracking-wide">Round Results</p>
-            <div className="flex justify-center gap-2">
+          <div className="space-y-3">
+            <p className="text-slate-400 text-xs uppercase tracking-wide font-mono">ROUND ANALYSIS</p>
+            <div className="flex justify-center gap-3">
               {roundResults.map((r, i) => (
                 <div
                   key={i}
-                  className={`w-10 h-10 rounded-lg flex flex-col items-center justify-center text-xs ${
+                  className={`w-12 h-12 rounded-lg flex flex-col items-center justify-center ${
                     r.result === 'win'
-                      ? 'bg-emerald-500/30 border border-emerald-500'
+                      ? 'bg-emerald-500/20 border border-emerald-500'
                       : r.result === 'draw'
-                      ? 'bg-slate-500/30 border border-slate-500'
-                      : 'bg-red-500/30 border border-red-500'
+                      ? 'bg-slate-500/20 border border-slate-500'
+                      : 'bg-red-500/20 border border-red-500'
                   }`}
                 >
-                  <span className="font-bold text-white">+{r.points}</span>
+                  <span className="font-bold text-white font-mono">+{r.points}</span>
                 </div>
               ))}
             </div>
@@ -313,15 +328,16 @@ export default function RockPaperScissors({ player, isActive, onComplete }: Prop
   };
 
   return (
-    <div className="w-full h-full flex flex-col">
-      <div className="flex justify-between items-center mb-4 px-2">
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400 text-sm">Round</span>
+    <div className="w-full min-h-screen flex flex-col p-6">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-3">
+          <span className="text-slate-400 text-sm font-mono">ROUND</span>
           <div className="flex gap-1">
             {Array.from({ length: TOTAL_ROUNDS }).map((_, i) => (
               <div
                 key={i}
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
                   i < currentRound - 1
                     ? roundResults[i]?.result === 'win'
                       ? 'bg-emerald-500 text-white'
@@ -329,7 +345,7 @@ export default function RockPaperScissors({ player, isActive, onComplete }: Prop
                       ? 'bg-slate-500 text-white'
                       : 'bg-red-500 text-white'
                     : i === currentRound - 1
-                    ? 'bg-orange-500 text-white'
+                    ? 'bg-gradient-to-br from-purple-500 to-pink-500 text-white'
                     : 'bg-slate-700 text-slate-400'
                 }`}
               >
@@ -339,74 +355,86 @@ export default function RockPaperScissors({ player, isActive, onComplete }: Prop
           </div>
         </div>
         <div className="text-right">
-          <span className="text-white font-bold">{totalScore}</span>
-          <span className="text-slate-400 text-sm ml-1">pts</span>
+          <span className="text-white font-bold text-xl font-display">{totalScore}</span>
+          <span className="text-slate-400 text-sm ml-1 font-mono">PTS</span>
         </div>
       </div>
 
       {phase === 'selection' && (
         <>
-          <div className="flex justify-center items-center mb-6">
-            <div className="flex items-center gap-2 bg-slate-700 px-6 py-3 rounded-full">
-              <Clock className={`w-5 h-5 ${timeLeft <= 3 ? 'text-red-400' : 'text-orange-400'}`} />
-              <span className={`text-2xl font-bold ${timeLeft <= 3 ? 'text-red-400 animate-pulse' : 'text-white'}`}>
+          {/* Timer */}
+          <div className="flex justify-center items-center mb-8">
+            <div className={`flex items-center gap-3 cyber-card px-6 py-3 rounded-full ${
+              timeLeft <= 3 ? 'neon-border-magenta' : 'neon-border'
+            }`}>
+              <Clock className={`w-5 h-5 ${timeLeft <= 3 ? 'text-red-400' : 'text-cyan-400'}`} />
+              <span className={`text-3xl font-bold font-mono ${timeLeft <= 3 ? 'text-red-400 animate-pulse' : 'text-white'}`}>
                 {timeLeft}s
               </span>
             </div>
           </div>
 
+          {/* AI Message */}
+          <div className="text-center mb-6">
+            <p className="text-purple-400 font-mono text-sm animate-pulse">{aiMessage}</p>
+          </div>
+
           <div className="flex-1 flex flex-col items-center justify-center">
-            <p className="text-white text-2xl font-bold mb-8">Choose Your Weapon!</p>
+            <p className="text-white text-2xl font-bold mb-8 font-display tracking-wider">SELECT YOUR WEAPON</p>
 
             <div className="grid grid-cols-3 gap-4 w-full max-w-md">
               {CHOICES.map((choice) => (
                 <button
                   key={choice.value}
                   onClick={() => handleSelection(choice.value)}
-                  className="aspect-square bg-slate-700 hover:bg-slate-600 active:scale-95 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all border-2 border-transparent hover:border-orange-500"
+                  className="aspect-square cyber-card hover:neon-border active:scale-95 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all"
+                  aria-label={`Select ${choice.label}`}
+                  tabIndex={0}
                 >
-                  <span className="text-6xl">{choice.emoji}</span>
-                  <span className="text-white font-semibold">{choice.label}</span>
+                  <span className="text-7xl">{choice.emoji}</span>
+                  <span className="text-white font-semibold font-mono text-sm">{choice.label}</span>
                 </button>
               ))}
             </div>
 
-            <p className="text-slate-400 mt-8 text-center">
-              Win = 3pts | Draw = 1pt | Lose = 0pts
-            </p>
+            <div className="flex items-center justify-center gap-6 mt-8 text-slate-400 font-mono text-sm">
+              <span><span className="text-emerald-400">WIN</span> = 3</span>
+              <span><span className="text-slate-300">DRAW</span> = 1</span>
+              <span><span className="text-red-400">LOSE</span> = 0</span>
+            </div>
           </div>
         </>
       )}
 
       {phase === 'result' && (
         <div className="flex-1 flex flex-col items-center justify-center animate-bounce-in">
-          <div className="grid grid-cols-3 gap-8 items-center mb-6">
+          <div className="grid grid-cols-3 gap-8 items-center mb-8">
             <div className="text-center">
-              <p className="text-slate-400 mb-2">You</p>
-              <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-4xl ${
-                playerChoice ? 'bg-sky-500/20 border-2 border-sky-500' : 'bg-red-500/20 border-2 border-red-500'
+              <p className="text-slate-400 mb-3 font-mono text-sm">YOU</p>
+              <div className={`w-24 h-24 rounded-2xl flex items-center justify-center text-5xl ${
+                playerChoice ? 'cyber-card neon-border' : 'bg-red-500/20 border-2 border-red-500'
               }`}>
                 {playerChoice ? getChoiceEmoji(playerChoice) : '⏰'}
               </div>
             </div>
 
             <div className="text-center">
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center text-xl ${
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
                 result === 'win'
-                  ? 'bg-emerald-500 text-white'
+                  ? 'bg-emerald-500'
                   : result === 'lose'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-slate-600 text-white'
+                  ? 'bg-red-500'
+                  : 'bg-slate-600'
               }`}>
                 {result === 'win' ? (
-                  <Trophy className="w-7 h-7" />
+                  <Trophy className="w-8 h-8 text-white" />
                 ) : result === 'lose' ? (
-                  <XCircle className="w-7 h-7" />
+                  <XCircle className="w-8 h-8 text-white" />
                 ) : (
-                  <Minus className="w-7 h-7" />
+                  <Minus className="w-8 h-8 text-white" />
                 )}
               </div>
-              <p className={`mt-2 text-lg font-bold ${
+              <p className={`mt-3 text-xl font-bold font-display ${
                 result === 'win' ? 'text-emerald-400' : result === 'lose' ? 'text-red-400' : 'text-slate-400'
               }`}>
                 +{POINTS[result || 'lose']}
@@ -414,30 +442,35 @@ export default function RockPaperScissors({ player, isActive, onComplete }: Prop
             </div>
 
             <div className="text-center">
-              <p className="text-slate-400 mb-2">Bot</p>
-              <div className="w-20 h-20 rounded-2xl bg-orange-500/20 border-2 border-orange-500 flex items-center justify-center text-4xl">
+              <p className="text-slate-400 mb-3 font-mono text-sm">GENESIS</p>
+              <div className="w-24 h-24 rounded-2xl cyber-card neon-border-magenta flex items-center justify-center text-5xl">
                 {getChoiceEmoji(botChoice)}
               </div>
             </div>
           </div>
 
-          <p className="text-white text-lg mb-2">
+          {/* AI Response */}
+          <p className="text-purple-400 font-mono text-center mb-4">{aiMessage}</p>
+
+          <p className="text-white text-lg font-display">
             {result === 'win'
-              ? 'You win this round!'
+              ? 'VICTORY!'
               : result === 'draw'
-              ? 'It\'s a draw!'
+              ? 'NEURAL SYNCHRONIZATION'
               : playerChoice
-              ? 'Bot wins this round!'
-              : 'Time\'s up!'}
+              ? 'GENESIS PREVAILS'
+              : 'TIMEOUT!'}
           </p>
 
           {currentRound < TOTAL_ROUNDS && (
-            <p className="text-slate-400 text-sm">
-              Next round starting soon...
+            <p className="text-slate-400 text-sm mt-2 font-mono">
+              NEXT ROUND INITIALIZING...
             </p>
           )}
         </div>
       )}
     </div>
   );
-}
+};
+
+export default RockPaperScissors;

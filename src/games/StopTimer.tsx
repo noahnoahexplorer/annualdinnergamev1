@@ -1,17 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Timer, Target, Trophy } from 'lucide-react';
-import { supabase, type Player } from '../lib/supabase';
+import { Timer, Target, Trophy, Zap } from 'lucide-react';
+import { supabase, TABLES, type Player, type GameSession } from '../lib/supabase';
 
 type Props = {
   player: Player;
-  isActive: boolean;
-  onComplete: (score: number) => void;
+  gameSession: GameSession;
 };
 
 const TARGET_TIME = 7.7;
-const COUNTDOWN_DURATION = 5;
+const COUNTDOWN_DURATION = 3;
 
-export default function StopTimer({ player, isActive, onComplete }: Props) {
+const StopTimer = ({ player, gameSession }: Props) => {
   const [phase, setPhase] = useState<'countdown' | 'running' | 'stopped'>('countdown');
   const [countdown, setCountdown] = useState(COUNTDOWN_DURATION);
   const [time, setTime] = useState(0);
@@ -20,17 +19,19 @@ export default function StopTimer({ player, isActive, onComplete }: Props) {
   const startTimeRef = useRef<number | null>(null);
   const progressUpdateRef = useRef<number | null>(null);
   const hasCompleted = useRef(false);
+  const isActive = gameSession.current_stage === 3;
 
   const updateProgress = useCallback(async (elapsed: number, status: 'waiting' | 'playing' | 'finished') => {
     try {
       const progress = status === 'finished' ? 100 : Math.min((elapsed / TARGET_TIME) * 100, 100);
       await supabase
-        .from('player_progress')
+        .from(TABLES.playerProgress)
         .upsert({
           player_id: player.id,
           game_session_id: player.game_session_id,
           stage: 3,
           progress,
+          current_score: 0,
           elapsed_time: elapsed,
           status,
           updated_at: new Date().toISOString(),
@@ -40,9 +41,27 @@ export default function StopTimer({ player, isActive, onComplete }: Props) {
     }
   }, [player.id, player.game_session_id]);
 
+  const saveScore = useCallback(async (diff: number, finalTime: number) => {
+    if (hasCompleted.current) return;
+    hasCompleted.current = true;
+
+    try {
+      await supabase
+        .from(TABLES.stageScores)
+        .upsert({
+          player_id: player.id,
+          game_session_id: player.game_session_id,
+          stage: 3,
+          score: diff,
+          time_taken: finalTime,
+        }, { onConflict: 'player_id,game_session_id,stage' });
+    } catch (err) {
+      console.error('Error saving score:', err);
+    }
+  }, [player.id, player.game_session_id]);
+
   const stopTimer = useCallback(() => {
     if (phase !== 'running' || hasCompleted.current) return;
-    hasCompleted.current = true;
 
     if (progressUpdateRef.current) {
       clearTimeout(progressUpdateRef.current);
@@ -57,8 +76,8 @@ export default function StopTimer({ player, isActive, onComplete }: Props) {
     setDifference(diff);
     setIsOverTarget(finalTime > TARGET_TIME);
     updateProgress(finalTime, 'finished');
-    onComplete(diff, finalTime);
-  }, [phase, time, onComplete, updateProgress]);
+    saveScore(diff, finalTime);
+  }, [phase, time, updateProgress, saveScore]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -135,7 +154,7 @@ export default function StopTimer({ player, isActive, onComplete }: Props) {
   }, [isActive, updateProgress]);
 
   const getResultColor = () => {
-    if (difference === null) return '';
+    if (difference === null) return 'text-white';
     if (difference < 0.1) return 'text-emerald-400';
     if (difference < 0.3) return 'text-yellow-400';
     if (difference < 0.5) return 'text-orange-400';
@@ -144,93 +163,115 @@ export default function StopTimer({ player, isActive, onComplete }: Props) {
 
   const getResultMessage = () => {
     if (difference === null) return '';
-    if (difference < 0.1) return 'Perfect!';
-    if (difference < 0.3) return 'Great!';
-    if (difference < 0.5) return 'Good!';
-    if (difference < 1) return 'Not bad!';
-    return 'Keep practicing!';
+    if (difference < 0.1) return 'PERFECT PRECISION!';
+    if (difference < 0.3) return 'EXCELLENT!';
+    if (difference < 0.5) return 'ACCEPTABLE!';
+    if (difference < 1) return 'ADEQUATE!';
+    return 'RECALIBRATION REQUIRED';
   };
 
   if (!isActive) {
     return (
-      <div className="w-full h-full flex items-center justify-center">
-        <p className="text-slate-400 text-lg">Waiting for game to start...</p>
+      <div className="w-full min-h-screen flex items-center justify-center p-6">
+        <p className="text-slate-400 text-xl font-mono">AWAITING SIGNAL...</p>
       </div>
     );
   }
 
   if (phase === 'countdown') {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center">
+      <div className="w-full min-h-screen flex flex-col items-center justify-center p-6">
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-white mb-2">Stop at {TARGET_TIME.toFixed(6)}s!</h2>
-          <p className="text-slate-400">Timer will start automatically after countdown</p>
+          <h2 className="text-3xl font-bold text-white mb-2 font-display tracking-wider">
+            PRECISION <span className="text-purple-400">PROTOCOL</span>
+          </h2>
+          <p className="text-slate-400 font-mono">STOP AT EXACTLY {TARGET_TIME.toFixed(6)} SECONDS</p>
         </div>
 
-        <div className="bg-slate-800 rounded-3xl p-8 mb-8">
+        <div className="cyber-card rounded-3xl p-10 mb-8">
           <div className="text-center">
-            <p className="text-slate-400 mb-4">Get Ready!</p>
-            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center mx-auto animate-pulse">
-              <span className="text-6xl font-bold text-white">{countdown}</span>
+            <p className="text-slate-400 mb-6 font-mono">TIMER INITIATING IN</p>
+            <div className="w-36 h-36 rounded-full bg-gradient-to-br from-purple-600 to-emerald-500 flex items-center justify-center mx-auto animate-pulse-glow">
+              <span className="text-7xl font-bold text-white font-display">{countdown}</span>
             </div>
           </div>
+        </div>
+
+        <div className="flex items-center gap-3 text-cyan-400">
+          <Target className="w-6 h-6" />
+          <span className="font-mono text-xl">{TARGET_TIME.toFixed(6)}s</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center">
+    <div className="w-full min-h-screen flex flex-col items-center justify-center p-6">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-white mb-2">Stop at {TARGET_TIME.toFixed(6)}s!</h2>
-        <p className="text-slate-400">Stop the timer as close to the target as possible</p>
+        <h2 className="text-3xl font-bold text-white mb-2 font-display tracking-wider">
+          PRECISION <span className="text-purple-400">PROTOCOL</span>
+        </h2>
+        <p className="text-slate-400 font-mono">STOP AT EXACTLY {TARGET_TIME.toFixed(6)} SECONDS</p>
       </div>
 
-      <div className="bg-slate-800 rounded-3xl p-8 mb-8 w-full max-w-xs">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <Target className="w-6 h-6 text-orange-400" />
-          <span className="text-orange-400 font-bold">Target: {TARGET_TIME.toFixed(6)}s</span>
+      <div className={`cyber-card rounded-3xl p-8 mb-8 w-full max-w-sm ${
+        phase === 'stopped' ? (difference && difference < 0.1 ? 'neon-border' : 'neon-border-purple') : ''
+      }`}>
+        {/* Target display */}
+        <div className="flex items-center justify-center gap-3 mb-6">
+          <Target className="w-6 h-6 text-cyan-400" />
+          <span className="text-cyan-400 font-bold font-mono">TARGET: {TARGET_TIME.toFixed(6)}s</span>
         </div>
 
-        <div className={`text-center py-8 px-4 rounded-2xl ${phase === 'stopped' ? 'bg-slate-700' : 'bg-slate-900'}`}>
-          <Timer className="w-12 h-12 mx-auto mb-4 text-sky-400" />
-          <p className={`text-4xl font-mono font-bold ${phase === 'stopped' ? getResultColor() : 'text-white'}`}>
+        {/* Timer display */}
+        <div className={`text-center py-10 px-4 rounded-2xl ${phase === 'stopped' ? 'bg-slate-800/50' : 'bg-slate-900/80'}`}>
+          <Timer className={`w-16 h-16 mx-auto mb-6 ${
+            phase === 'running' ? 'text-cyan-400 animate-pulse' : 'text-purple-400'
+          }`} />
+          <p className={`text-5xl font-mono font-bold tracking-wider ${phase === 'stopped' ? getResultColor() : 'text-white'}`}>
             {time.toFixed(6)}
           </p>
-          <p className="text-slate-400 text-sm mt-2">seconds</p>
+          <p className="text-slate-400 text-sm mt-3 font-mono">SECONDS</p>
         </div>
 
+        {/* Result display */}
         {phase === 'stopped' && difference !== null && (
-          <div className="mt-6 text-center animate-bounce-in">
-            <div className={`text-2xl font-bold ${getResultColor()}`}>
+          <div className="mt-8 text-center animate-bounce-in">
+            <div className={`text-2xl font-bold font-display ${getResultColor()}`}>
               {getResultMessage()}
             </div>
-            <p className="text-slate-400 mt-2">
-              Your time: <span className="text-white font-mono">{time.toFixed(6)}s</span>
+            <p className="text-slate-400 mt-4 font-mono">
+              YOUR TIME: <span className="text-white">{time.toFixed(6)}s</span>
             </p>
-            <p className="text-slate-400 mt-1">
-              Difference: <span className={getResultColor()}>
+            <p className="text-slate-400 mt-2 font-mono">
+              DEVIATION: <span className={getResultColor()}>
                 {isOverTarget ? '+' : '-'}{difference.toFixed(6)}s
               </span>
             </p>
             {difference < 0.1 && (
-              <div className="flex items-center justify-center gap-2 mt-4 text-emerald-400">
-                <Trophy className="w-5 h-5" />
-                <span className="font-bold">Incredible Timing!</span>
+              <div className="flex items-center justify-center gap-2 mt-6 text-emerald-400">
+                <Trophy className="w-6 h-6" />
+                <span className="font-bold font-display">EXCEPTIONAL TIMING</span>
               </div>
             )}
           </div>
         )}
       </div>
 
+      {/* Stop button */}
       {phase === 'running' && (
         <button
           onClick={stopTimer}
-          className="tap-button w-full max-w-xs h-32 rounded-2xl font-bold text-xl transition-all duration-300 shadow-xl bg-gradient-to-br from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 text-white animate-pulse-glow"
+          className="tap-button w-full max-w-sm h-36 rounded-2xl font-bold text-2xl transition-all duration-100 shadow-2xl bg-gradient-to-br from-red-500 via-pink-500 to-purple-600 hover:from-red-400 hover:via-pink-400 hover:to-purple-500 text-white animate-pulse-glow flex flex-col items-center justify-center gap-2"
+          aria-label="Stop timer"
+          tabIndex={0}
         >
-          STOP!
+          <Zap className="w-10 h-10" />
+          <span className="font-display tracking-wider">STOP!</span>
         </button>
       )}
     </div>
   );
-}
+};
+
+export default StopTimer;

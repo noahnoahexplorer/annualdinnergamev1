@@ -1,31 +1,278 @@
+/* ============================================
+   CYBER GENESIS - GAME ARENA THEME
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --primary: #0ea5e9;
-  --primary-dark: #0284c7;
-  --secondary: #f97316;
-  --accent: #10b981;
+  /* Cyber Genesis Primary Colors */
+  --cyber-purple: #9333ea;
+  --cyber-magenta: #ec4899;
+  --cyber-cyan: #22d3ee;
+  --neon-blue: #3b82f6;
+  
+  /* Backgrounds */
+  --dark-bg: #0a0a0f;
+  --dark-bg-secondary: #12121a;
+  --dark-bg-tertiary: #1a1a2e;
+  
+  /* Text */
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --text-muted: #52525b;
+  
+  /* Status Colors */
+  --success: #22c55e;
   --danger: #ef4444;
   --warning: #f59e0b;
+
+  /* Legacy compatibility */
+  --primary: var(--cyber-cyan);
+  --primary-dark: var(--neon-blue);
+  --secondary: var(--cyber-magenta);
+  --accent: var(--success);
 }
 
 * {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Orbitron', sans-serif;
+  box-sizing: border-box;
 }
 
 body {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: 
+    radial-gradient(ellipse at 50% 0%, rgba(147, 51, 234, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 40%),
+    radial-gradient(ellipse at 20% 80%, rgba(34, 211, 238, 0.1) 0%, transparent 40%),
+    linear-gradient(180deg, #0a0a0f 0%, #12121a 50%, #0a0a0f 100%);
   min-height: 100vh;
+  color: var(--text-primary);
 }
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+
+.font-display {
+  font-family: 'Orbitron', sans-serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 10px var(--cyber-cyan), 0 0 20px var(--cyber-cyan), 0 0 40px var(--cyber-cyan);
+}
+
+.text-glow-magenta {
+  text-shadow: 0 0 10px var(--cyber-magenta), 0 0 20px var(--cyber-magenta), 0 0 40px var(--cyber-magenta);
+}
+
+.text-glow-purple {
+  text-shadow: 0 0 10px var(--cyber-purple), 0 0 20px var(--cyber-purple), 0 0 40px var(--cyber-purple);
+}
+
+/* ============================================
+   CYBER BACKGROUNDS & EFFECTS
+   ============================================ */
+
+.cyber-bg {
+  background: 
+    radial-gradient(ellipse at 50% 0%, rgba(147, 51, 234, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 40%),
+    radial-gradient(ellipse at 20% 80%, rgba(34, 211, 238, 0.1) 0%, transparent 40%),
+    var(--dark-bg);
+}
+
+.scanline {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.1) 0px,
+    rgba(0, 0, 0, 0.1) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  z-index: 1000;
+  opacity: 0.3;
+}
+
+.grid-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  background-image: 
+    linear-gradient(rgba(34, 211, 238, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  z-index: 1;
+}
+
+/* ============================================
+   GLITCH EFFECTS
+   ============================================ */
+
+@keyframes glitch {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+  100% { transform: translate(0); }
+}
+
+@keyframes glitch-skew {
+  0% { transform: skew(0deg); }
+  20% { transform: skew(2deg); }
+  40% { transform: skew(-1deg); }
+  60% { transform: skew(1deg); }
+  80% { transform: skew(-2deg); }
+  100% { transform: skew(0deg); }
+}
+
+.glitch {
+  animation: glitch 0.3s ease-in-out infinite alternate;
+}
+
+.glitch-text {
+  position: relative;
+}
+
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.glitch-text::before {
+  color: var(--cyber-cyan);
+  animation: glitch 0.5s ease-in-out infinite alternate;
+  clip-path: inset(0 0 50% 0);
+  transform: translate(-2px);
+}
+
+.glitch-text::after {
+  color: var(--cyber-magenta);
+  animation: glitch 0.5s ease-in-out infinite alternate-reverse;
+  clip-path: inset(50% 0 0 0);
+  transform: translate(2px);
+}
+
+/* ============================================
+   NEON BORDERS & BOXES
+   ============================================ */
+
+.neon-border {
+  border: 2px solid var(--cyber-cyan);
+  box-shadow: 
+    0 0 5px var(--cyber-cyan),
+    0 0 10px var(--cyber-cyan),
+    inset 0 0 5px rgba(34, 211, 238, 0.1);
+}
+
+.neon-border-magenta {
+  border: 2px solid var(--cyber-magenta);
+  box-shadow: 
+    0 0 5px var(--cyber-magenta),
+    0 0 10px var(--cyber-magenta),
+    inset 0 0 5px rgba(236, 72, 153, 0.1);
+}
+
+.neon-border-purple {
+  border: 2px solid var(--cyber-purple);
+  box-shadow: 
+    0 0 5px var(--cyber-purple),
+    0 0 10px var(--cyber-purple),
+    inset 0 0 5px rgba(147, 51, 234, 0.1);
+}
+
+.cyber-card {
+  background: linear-gradient(135deg, rgba(18, 18, 26, 0.9) 0%, rgba(26, 26, 46, 0.9) 100%);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+/* ============================================
+   CYBER BUTTONS
+   ============================================ */
+
+.cyber-btn {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, var(--cyber-purple) 0%, var(--cyber-magenta) 100%);
+  border: none;
+  color: white;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+
+.cyber-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.cyber-btn:hover::before {
+  left: 100%;
+}
+
+.cyber-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px var(--cyber-magenta);
+}
+
+.cyber-btn:active {
+  transform: scale(0.98);
+}
+
+.cyber-btn-secondary {
+  background: transparent;
+  border: 2px solid var(--cyber-cyan);
+  color: var(--cyber-cyan);
+}
+
+.cyber-btn-secondary:hover {
+  background: rgba(34, 211, 238, 0.1);
+  box-shadow: 0 0 20px var(--cyber-cyan);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(14, 165, 233, 0.5);
+    box-shadow: 0 0 20px rgba(147, 51, 234, 0.5), 0 0 40px rgba(236, 72, 153, 0.3);
   }
   50% {
-    box-shadow: 0 0 40px rgba(14, 165, 233, 0.8);
+    box-shadow: 0 0 40px rgba(147, 51, 234, 0.8), 0 0 60px rgba(236, 72, 153, 0.5);
   }
 }
 
@@ -54,6 +301,17 @@ body {
   }
 }
 
+@keyframes slide-down {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 @keyframes run {
   0%, 100% {
     transform: translateY(0);
@@ -61,6 +319,42 @@ body {
   50% {
     transform: translateY(-5px);
   }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes typing {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-blink {
+  animation: blink 0.8s step-end infinite;
+}
+
+@keyframes scanDown {
+  0%, 100% { top: -32px; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
 }
 
 .animate-pulse-glow {
@@ -75,9 +369,39 @@ body {
   animation: slide-up 0.3s ease-out forwards;
 }
 
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out forwards;
+}
+
 .animate-run {
   animation: run 0.15s ease-in-out;
 }
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-rotate {
+  animation: rotate 10s linear infinite;
+}
+
+/* ============================================
+   TYPING EFFECT
+   ============================================ */
+
+.typing-container {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 3px solid var(--cyber-cyan);
+  animation: 
+    typing 2s steps(30, end) forwards,
+    blink 0.7s step-end infinite;
+}
+
+/* ============================================
+   TAP BUTTON
+   ============================================ */
 
 .tap-button {
   transition: transform 0.1s ease;
@@ -87,4 +411,323 @@ body {
 
 .tap-button:active {
   transform: scale(0.95);
+}
+
+/* ============================================
+   GENESIS AVATAR
+   ============================================ */
+
+.genesis-avatar {
+  transition: all 0.5s ease;
+}
+
+.genesis-avatar.scanning {
+  filter: hue-rotate(180deg) brightness(1.2);
+}
+
+.genesis-avatar.celebrating {
+  animation: float 1s ease-in-out infinite;
+}
+
+.genesis-glow {
+  filter: drop-shadow(0 0 10px var(--cyber-cyan)) drop-shadow(0 0 20px var(--cyber-purple));
+}
+
+/* ============================================
+   PLAYER CARDS
+   ============================================ */
+
+.player-card {
+  background: linear-gradient(135deg, rgba(18, 18, 26, 0.95) 0%, rgba(26, 26, 46, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.player-card:hover {
+  border-color: var(--cyber-cyan);
+  transform: translateY(-2px);
+}
+
+.player-card.eliminated {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
+.player-card.active {
+  border-color: var(--cyber-magenta);
+  box-shadow: 0 0 20px rgba(236, 72, 153, 0.3);
+}
+
+/* ============================================
+   PROGRESS BARS
+   ============================================ */
+
+.progress-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--cyber-cyan), var(--cyber-magenta));
+  transition: width 0.3s ease;
+}
+
+/* ============================================
+   SCORE DISPLAY
+   ============================================ */
+
+.score-display {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 3rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--cyber-cyan), var(--cyber-magenta));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================
+   QR CODE STYLING
+   ============================================ */
+
+.qr-container {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 
+    0 0 30px var(--cyber-cyan),
+    0 0 60px rgba(34, 211, 238, 0.3);
+}
+
+/* ============================================
+   COUNTDOWN
+   ============================================ */
+
+.countdown {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 8rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--cyber-cyan), var(--cyber-magenta), var(--cyber-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  filter: drop-shadow(0 0 20px var(--cyber-cyan));
+}
+
+/* ============================================
+   RPS GAME SPECIFIC
+   ============================================ */
+
+.rps-choice {
+  font-size: 6rem;
+  transition: all 0.3s ease;
+}
+
+.rps-choice.selected {
+  transform: scale(1.2);
+  filter: drop-shadow(0 0 20px var(--cyber-cyan));
+}
+
+.rps-result {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 4rem;
+  font-weight: 900;
+}
+
+.rps-result.win {
+  color: var(--success);
+  text-shadow: 0 0 20px var(--success);
+}
+
+.rps-result.lose {
+  color: var(--danger);
+  text-shadow: 0 0 20px var(--danger);
+}
+
+.rps-result.draw {
+  color: var(--warning);
+  text-shadow: 0 0 20px var(--warning);
+}
+
+/* ============================================
+   STAGE BADGES
+   ============================================ */
+
+.stage-badge {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.stage-badge-1 {
+  background: linear-gradient(135deg, var(--cyber-cyan), var(--neon-blue));
+}
+
+.stage-badge-2 {
+  background: linear-gradient(135deg, var(--cyber-magenta), var(--cyber-purple));
+}
+
+.stage-badge-3 {
+  background: linear-gradient(135deg, var(--success), var(--cyber-cyan));
+}
+
+/* ============================================
+   ELIMINATION EFFECTS
+   ============================================ */
+
+.eliminated-overlay {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(0, 0, 0, 0.8));
+}
+
+.advancing-overlay {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(0, 0, 0, 0.6));
+}
+
+/* ============================================
+   CYBER GENESIS TITLE
+   ============================================ */
+
+.cyber-title {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  background: linear-gradient(135deg, var(--cyber-cyan) 0%, var(--cyber-magenta) 50%, var(--cyber-purple) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 30px rgba(147, 51, 234, 0.5));
+}
+
+/* ============================================
+   LEADERBOARD STYLES
+   ============================================ */
+
+.leaderboard-row {
+  background: linear-gradient(135deg, rgba(18, 18, 26, 0.8) 0%, rgba(26, 26, 46, 0.8) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+}
+
+.leaderboard-row:hover {
+  border-color: rgba(34, 211, 238, 0.3);
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.9) 0%, rgba(34, 34, 58, 0.9) 100%);
+}
+
+.leaderboard-row.safe {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(18, 18, 26, 0.8) 100%);
+}
+
+.leaderboard-row.danger {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(18, 18, 26, 0.8) 100%);
+}
+
+/* ============================================
+   RANK BADGES
+   ============================================ */
+
+.rank-badge {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+}
+
+.rank-1 {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #78350f;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+.rank-2 {
+  background: linear-gradient(135deg, #d1d5db, #9ca3af);
+  color: #374151;
+  box-shadow: 0 0 15px rgba(156, 163, 175, 0.4);
+}
+
+.rank-3 {
+  background: linear-gradient(135deg, #fb923c, #ea580c);
+  color: #431407;
+  box-shadow: 0 0 15px rgba(251, 146, 60, 0.4);
+}
+
+/* ============================================
+   FADE IN ANIMATION
+   ============================================ */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+/* ============================================
+   PARTICLES & CELEBRATION
+   ============================================ */
+
+.particles {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--cyber-cyan);
+  border-radius: 50%;
+  animation: float 8s ease-in-out infinite;
+}
+
+.particles.celebration .celebration-particle {
+  width: 8px;
+  height: 8px;
+  animation: confetti 3s ease-out infinite;
+}
+
+@keyframes confetti {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.animate-confetti {
+  animation: confetti 4s linear infinite;
+}
+
+/* ============================================
+   BORDER WIDTH UTILITIES
+   ============================================ */
+
+.border-3 {
+  border-width: 3px;
+}
+
+.border-4 {
+  border-width: 4px;
 }
