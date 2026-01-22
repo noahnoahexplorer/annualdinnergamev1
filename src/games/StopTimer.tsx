@@ -482,22 +482,24 @@ const StopTimer = ({ player, gameSession }: Props) => {
           </div>
 
           {/* Timer display - shows actual time OR mystery, not both */}
-          <div className="text-center py-10 px-4 rounded-2xl bg-slate-900/80">
+          <div className="text-center py-10 px-4 rounded-2xl bg-slate-900/80 relative">
             <Timer className={`w-20 h-20 mx-auto mb-6 transition-colors duration-500 ${isFaded ? 'text-purple-400 animate-pulse' : 'text-cyan-400'}`} />
             
-            {/* Show actual timer while fading, then mystery after */}
-            {!isFaded ? (
-              <p 
-                className="text-5xl font-mono font-bold tracking-wider text-cyan-400 transition-opacity duration-300"
-                style={{ opacity: 1 - (timerFadeProgress / 100) }}
-              >
-                {time.toFixed(6)}
-              </p>
-            ) : (
-              <p className="text-5xl font-mono font-bold tracking-wider text-purple-400 animate-pulse">
-                ??.??????
-              </p>
-            )}
+            {/* Container for timer/mystery - fixed height to prevent layout shift */}
+            <div className="h-16 flex items-center justify-center">
+              {!isFaded ? (
+                <p 
+                  className="text-5xl font-mono font-bold tracking-wider text-cyan-400"
+                  style={{ opacity: Math.max(0, 1 - (timerFadeProgress / 100)) }}
+                >
+                  {time.toFixed(6)}
+                </p>
+              ) : (
+                <p className="text-5xl font-mono font-bold tracking-wider text-purple-400 animate-pulse">
+                  ??.??????
+                </p>
+              )}
+            </div>
             
             <p className="text-slate-400 text-sm mt-3 font-mono">
               {isFaded ? 'TRUST YOUR INSTINCTS' : 'TIMER FADING...'}
