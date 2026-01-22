@@ -30,7 +30,7 @@ export type GameEvent = {
 export type GameSession = {
   id: string;
   event_id: string | null;
-  round_number: number;
+  round_number: number; // 1, 2, or 3 - NOT NULL with default 1
   status: 'lobby' | 'stage1' | 'stage2' | 'stage3' | 'completed';
   current_stage: number;
   enabled_stages: number[];

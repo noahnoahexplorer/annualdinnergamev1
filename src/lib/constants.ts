@@ -159,6 +159,41 @@ export const SESSION_END_MESSAGES = {
   },
 };
 
+// ============================================
+// PRIZE CONFIGURATION
+// ============================================
+
+export const ROUND_PRIZES: Record<number, Record<number, { title: string; prize: string; description: string }>> = {
+  // Round 1: Positions 10, 9, 8, 7 get eliminated - Top 10 Finalists
+  1: {
+    10: { title: '10TH PLACE', prize: 'iPhone 17 (512GB)', description: 'Top 10 Finalist' },
+    9: { title: '9TH PLACE', prize: 'MacBook Air 13" (M4)', description: 'Top 10 Finalist' },
+    8: { title: '8TH PLACE', prize: 'Samsung Galaxy Z Flip 7 (512GB)', description: 'Top 10 Finalist' },
+    7: { title: '7TH PLACE', prize: 'iPhone 17 Pro (512GB)', description: 'Top 10 Finalist' },
+  },
+  // Round 2: Positions 6, 5, 4 get eliminated - Elite 6
+  2: {
+    6: { title: '6TH PLACE', prize: 'iPad Pro 13" (512GB) WiFi', description: 'Elite Finalist' },
+    5: { title: '5TH PLACE', prize: 'MacBook Pro 14" (M5)', description: 'Elite Finalist' },
+    4: { title: '4TH PLACE', prize: 'iPhone 17 Pro Max (1TB)', description: 'Elite Finalist' },
+  },
+  // Round 3: Final 3 positions - Champions
+  3: {
+    3: { title: '3RD PLACE', prize: 'Travel Voucher to Maldives', description: 'Package for 2 Pax' },
+    2: { title: '2ND PLACE', prize: 'Travel Voucher to Japan', description: 'Package for 2 Pax' },
+    1: { title: '1ST PLACE', prize: 'Travel Voucher to Europe', description: 'Package for 2 Pax' },
+  },
+};
+
+// Get eliminated positions for a round (for prize reveal)
+// Round 3 only returns [3] - 1st and 2nd are revealed together in a special screen
+export const getEliminatedPositions = (round: number): number[] => {
+  if (round === 1) return [10, 9, 8, 7]; // 4 eliminated
+  if (round === 2) return [6, 5, 4]; // 3 eliminated
+  if (round === 3) return [3]; // Only 3rd place in normal reveal, 1st & 2nd are special
+  return [];
+};
+
 // RPS AI personality messages
 export const RPS_AI_MESSAGES = {
   thinking: [

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Camera, User, Loader2, Eye, Gamepad2, Scan } from 'lucide-react';
+import { Camera, User, Loader2, Scan } from 'lucide-react';
 import { supabase, TABLES, GameSession } from '../lib/supabase';
 import { PLAYER_COLORS } from '../lib/constants';
 
@@ -13,9 +13,9 @@ const Join = () => {
   const [name, setName] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [joinType, setJoinType] = useState<'player' | 'spectator' | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Load session info on mount
   useEffect(() => {
@@ -58,29 +58,36 @@ const Join = () => {
       return;
     }
 
-    // Photo is optional - not required for any round
     setLoading(true);
     setError('');
 
     try {
-      let photoUrl = null;
+      let photoUrl: string | null = null;
 
+      // Upload photo to Supabase Storage if provided
       if (photo) {
-        const fileExt = photo.name.split('.').pop();
-        const fileName = `${gameId}/${Date.now()}.${fileExt}`;
+        setUploadingPhoto(true);
+        const fileExt = photo.name.split('.').pop()?.toLowerCase() || 'jpg';
+        const fileName = `${gameId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('player-photos')
-          .upload(fileName, photo);
+          .upload(fileName, photo, {
+            cacheControl: '3600',
+            upsert: false,
+          });
 
         if (uploadError) {
-          photoUrl = photoPreview;
+          console.error('Photo upload error:', uploadError);
+          // Don't use base64 fallback - it causes display issues
+          // Just continue without photo
         } else {
           const { data: { publicUrl } } = supabase.storage
             .from('player-photos')
             .getPublicUrl(fileName);
           photoUrl = publicUrl;
         }
+        setUploadingPhoto(false);
       }
 
       const { data, error: insertError } = await supabase
@@ -89,86 +96,27 @@ const Join = () => {
           game_session_id: gameId,
           event_id: session?.event_id || null,
           name: name.trim().toUpperCase(),
-          photo_url: photoUrl || photoPreview,
+          photo_url: photoUrl, // Only use Supabase URL, no base64
           avatar_color: getRandomAvatarColor(),
-          is_spectator: joinType === 'spectator',
+          is_spectator: false, // Always player, no spectator option
         })
         .select()
         .single();
 
       if (insertError) throw insertError;
 
-      if (joinType === 'spectator') {
-        navigate(`/spectator/${gameId}`);
-      } else {
-        navigate(`/play/${data.id}`);
-      }
+      navigate(`/play/${data.id}`);
     } catch (err) {
       console.error('Error joining game:', err);
       setError('CONNECTION FAILED. RETRY NEURAL LINK.');
     } finally {
       setLoading(false);
+      setUploadingPhoto(false);
     }
   };
 
   const roundNumber = session?.round_number || 1;
   const roundLabel = `ROUND 0${roundNumber}`;
-
-  if (!joinType) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 cyber-bg relative overflow-hidden">
-        <div className="grid-overlay" />
-        
-        <div className="relative z-10 text-center mb-8 animate-bounce-in">
-          <div className="flex items-center justify-center mb-4">
-            <Scan className="w-16 h-16 text-cyan-400 animate-pulse" />
-          </div>
-          <h1 className="text-4xl font-bold text-white mb-2 font-display tracking-wider">
-            {roundLabel} <span className="text-cyan-400">REGISTRATION</span>
-          </h1>
-          <p className="text-slate-400 font-mono">SELECT YOUR ROLE IN THE PROTOCOL</p>
-        </div>
-
-        <div className="relative z-10 grid gap-4 w-full max-w-sm">
-          <button
-            onClick={() => setJoinType('player')}
-            className="group cyber-card hover:neon-border text-white font-bold py-6 px-8 rounded-2xl transition-all duration-300"
-            aria-label="Join as Candidate"
-            tabIndex={0}
-          >
-            <div className="flex items-center justify-center gap-3">
-              <Gamepad2 className="w-8 h-8 text-cyan-400" />
-              <div className="text-left">
-                <p className="text-xl font-display">CANDIDATE</p>
-                <p className="text-cyan-400 text-sm font-normal font-mono">COMPETE IN {roundLabel}</p>
-              </div>
-            </div>
-          </button>
-
-          <button
-            onClick={() => setJoinType('spectator')}
-            className="group cyber-card hover:neon-border-magenta text-white font-bold py-6 px-8 rounded-2xl transition-all duration-300"
-            aria-label="Join as Observer"
-            tabIndex={0}
-          >
-            <div className="flex items-center justify-center gap-3">
-              <Eye className="w-8 h-8 text-pink-400" />
-              <div className="text-left">
-                <p className="text-xl font-display">OBSERVER</p>
-                <p className="text-pink-400 text-sm font-normal font-mono">MONITOR THE PROTOCOL</p>
-              </div>
-            </div>
-          </button>
-        </div>
-
-        <div className="relative z-10 mt-8 text-center">
-          <p className="text-slate-600 text-xs font-mono">
-            GENESIS PROTOCOL v3.0 • {roundLabel}
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 cyber-bg relative overflow-hidden">
@@ -176,51 +124,49 @@ const Join = () => {
       
       <div className="relative z-10 w-full max-w-sm">
         <div className="text-center mb-8 animate-bounce-in">
+          <div className="flex items-center justify-center mb-4">
+            <Scan className="w-12 h-12 text-cyan-400 animate-pulse" />
+          </div>
           <h1 className="text-3xl font-bold text-white mb-2 font-display tracking-wider">
-            {joinType === 'player' ? (
-              <>CANDIDATE <span className="text-cyan-400">REGISTRATION</span></>
-            ) : (
-              <>OBSERVER <span className="text-pink-400">REGISTRATION</span></>
-            )}
+            {roundLabel} <span className="text-cyan-400">REGISTRATION</span>
           </h1>
           <p className="text-slate-400 font-mono text-sm">ENTER YOUR NEURAL SIGNATURE</p>
         </div>
 
         <div className="space-y-6 animate-slide-up">
           {/* Photo upload - optional */}
-          {joinType === 'player' && (
-            <div className="flex flex-col items-center">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                capture="user"
-                onChange={handlePhotoChange}
-                className="hidden"
-                aria-label="Upload photo"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="relative w-32 h-32 rounded-full bg-slate-800 border-4 border-dashed border-slate-600 hover:border-cyan-400 transition-all overflow-hidden group neon-border"
-                aria-label="Take or upload photo"
-                tabIndex={0}
-              >
-                {photoPreview ? (
-                  <img
-                    src={photoPreview}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-slate-400 group-hover:text-cyan-400">
-                    <Camera className="w-8 h-8 mb-1" />
-                    <span className="text-xs font-mono">SCAN</span>
-                  </div>
-                )}
-              </button>
-              <p className="text-slate-500 text-sm mt-2 font-mono">TAP TO CAPTURE (OPTIONAL)</p>
-            </div>
-          )}
+          <div className="flex flex-col items-center">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="user"
+              onChange={handlePhotoChange}
+              className="hidden"
+              aria-label="Upload photo"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              className="relative w-32 h-32 rounded-full bg-slate-800 border-4 border-dashed border-slate-600 hover:border-cyan-400 transition-all overflow-hidden group neon-border disabled:opacity-50"
+              aria-label="Take or upload photo"
+              tabIndex={0}
+            >
+              {photoPreview ? (
+                <img
+                  src={photoPreview}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-slate-400 group-hover:text-cyan-400">
+                  <Camera className="w-8 h-8 mb-1" />
+                  <span className="text-xs font-mono">SCAN</span>
+                </div>
+              )}
+            </button>
+            <p className="text-slate-500 text-sm mt-2 font-mono">TAP TO CAPTURE (OPTIONAL)</p>
+          </div>
 
           <div>
             <label className="block text-slate-300 text-sm font-medium mb-2 font-mono">
@@ -256,21 +202,18 @@ const Join = () => {
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="font-display">CONNECTING...</span>
+                <span className="font-display">{uploadingPhoto ? 'UPLOADING PHOTO...' : 'CONNECTING...'}</span>
               </>
             ) : (
               <span className="font-display tracking-wider">REGISTER</span>
             )}
           </button>
+        </div>
 
-          <button
-            onClick={() => { setJoinType(null); setError(''); }}
-            className="w-full text-slate-400 hover:text-white py-2 transition-colors font-mono text-sm"
-            aria-label="Go back"
-            tabIndex={0}
-          >
-            ← BACK
-          </button>
+        <div className="relative z-10 mt-8 text-center">
+          <p className="text-slate-600 text-xs font-mono">
+            GENESIS PROTOCOL v3.0 • {roundLabel}
+          </p>
         </div>
       </div>
     </div>

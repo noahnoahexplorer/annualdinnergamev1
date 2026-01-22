@@ -336,6 +336,9 @@ const PlayerGame = () => {
   }
 
   if (gameSession.status === 'lobby') {
+    const roundNumber = gameSession.round_number || 1;
+    const maxPlayers = roundNumber === 1 ? 10 : roundNumber === 2 ? 6 : 3;
+    
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 cyber-bg">
         <div className="cyber-card rounded-2xl p-8 max-w-md w-full text-center neon-border-purple">
@@ -349,7 +352,8 @@ const PlayerGame = () => {
             )}
           </div>
           <h1 className="text-2xl font-bold text-white mb-2 font-display">{player.name}</h1>
-          <p className="text-cyan-400 mb-8 font-mono">CANDIDATE REGISTERED</p>
+          <p className="text-cyan-400 mb-2 font-mono">CANDIDATE REGISTERED</p>
+          <p className="text-purple-400 text-sm mb-8 font-mono">ROUND 0{roundNumber}</p>
 
           {gameSession.is_ready ? (
             <div className="bg-emerald-500/20 border border-emerald-500/50 rounded-xl p-6 mb-6">
@@ -367,7 +371,7 @@ const PlayerGame = () => {
               </div>
               <div className="flex items-center justify-center gap-2 text-slate-400">
                 <Users className="w-5 h-5" />
-                <span className="font-mono">{allPlayers.filter(p => !p.is_spectator && !p.is_kicked).length}/10 CANDIDATES</span>
+                <span className="font-mono">{allPlayers.filter(p => !p.is_spectator && !p.is_kicked).length}/{maxPlayers} CANDIDATES</span>
               </div>
             </div>
           )}

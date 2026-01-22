@@ -1,18 +1,30 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Users, Loader2, Trophy, XCircle, Crown, Timer, Target, Flag, Radio, Play, UserX, Skull, ChevronRight, SkipForward, Copy, Check, Home } from 'lucide-react';
+import { Users, Loader2, Trophy, XCircle, Crown, Timer, Target, Flag, Radio, Play, UserX, Skull, ChevronRight, SkipForward, Home } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase, TABLES, type Player, type GameSession, type StageScore, type PlayerProgress, type GameEvent } from '../lib/supabase';
-import { STAGE_CODENAMES, ELIMINATIONS, GenesisState } from '../lib/constants';
+import { STAGE_CODENAMES, ELIMINATIONS, GenesisState, ROUND_PRIZES, getEliminatedPositions } from '../lib/constants';
 import { generateSpeech } from '../lib/textToSpeech';
 import { BrandLogo3D } from '../components/BrandLogo3D';
 
 // Polling removed - real-time subscriptions handle all updates
 const COUNTDOWN_SECONDS = 5;
 
-// Intro audio URL - Using local file to avoid Supabase Storage egress costs
-// Download the MP3 and place it in /public/Introduction.mp3
+// Audio URLs - Using local files from /public folder for reliable playback
+// Download the MP3 files from Supabase and place them in /public/
 const INTRO_AUDIO_URL = '/Introduction.mp3';
+
+// Game rules audio URLs (local files)
+// Download from Supabase bucket 'mp3' and place in /public/ folder:
+// - Game1Rules.mp3, Game2Rules.mp3, Game3Rules.mp3, Closure.mp3
+const GAME_RULES_AUDIO: Record<number, string> = {
+  1: '/Game1Rules.mp3',
+  2: '/Game2Rules.mp3',
+  3: '/Game3Rules.mp3',
+};
+
+// Closure audio URL (local file)
+const CLOSURE_AUDIO_URL = '/Closure.mp3';
 
 // Story intro slides - synced with audio timestamps (startTime in seconds)
 // Audio transcript: "Welcome to the world of Cyber Genesis. A reality where intelligence is tested 
@@ -112,7 +124,7 @@ const ROUND_INSTRUCTIONS = {
     color: 'pink',
     objective: 'OUTSMART MY PREDICTION ALGORITHMS',
     rules: [
-      'Play Rock Paper Scissors against AVA',
+      'Play Rock Paper Scissors against AIVA',
       '5 rounds total',
       'WIN = 3pts | DRAW = 1pt | LOSE = 0pts',
     ],
@@ -125,11 +137,11 @@ const ROUND_INSTRUCTIONS = {
     color: 'emerald',
     objective: 'STOP THE TIMER AT EXACTLY 7.700000 SECONDS',
     rules: [
-      'Timer starts automatically',
-      'Trust your internal clock',
-      'Every millisecond matters',
+      'Timer starts after countdown',
+      'Timer FADES OUT in 3 seconds - rely on your INTERNAL CLOCK',
+      'CLOSEST to 7.7 seconds WINS',
     ],
-    elimination: 'THE CLOSEST TO PERFECTION WINS',
+    elimination: '', // No elimination message for Round 3
     tip: 'EXECUTE WITH PRECISION.',
   },
 };
@@ -142,9 +154,12 @@ type GamePhase =
   | 'trial-countdown' // Countdown before trial
   | 'trial-active'    // Trial in progress
   | 'trial-results'   // Results after trial
+  | 'standings-reveal' // Full standings scoreboard before prizes
+  | 'prize-reveal'    // Prize reveal ceremony for eliminated players
   | 'elimination'     // Dramatic elimination
   | 'session-end'     // Session complete - shows event ID
-  | 'champion';       // Final champion reveal
+  | 'champion'        // Final champion reveal
+  | 'closure';        // Final closure screen with AIVA hibernation
 
 type PlayerWithProgress = Player & {
   score?: number;
@@ -185,6 +200,449 @@ const AnimatedTimerDisplay = ({ baseTime, isPlaying }: { baseTime: number; isPla
   return <>{displayTime.toFixed(6)}</>;
 };
 
+// Animated Tap Race Demo for Round 1 rules
+const TapRaceDemo = () => {
+  const [progress, setProgress] = useState(0);
+  const [tapping, setTapping] = useState(false);
+  const [phase, setPhase] = useState<'ready' | 'racing' | 'finished'>('ready');
+  const [opponentProgress, setOpponentProgress] = useState(0);
+
+  useEffect(() => {
+    // Reset and loop the demo
+    const runDemo = () => {
+      setPhase('ready');
+      setProgress(0);
+      setOpponentProgress(0);
+      setTapping(false);
+    };
+
+    if (phase === 'ready') {
+      const timer = setTimeout(() => setPhase('racing'), 1000);
+      return () => clearTimeout(timer);
+    }
+
+    if (phase === 'racing') {
+      // Simulate tapping and progress
+      const interval = setInterval(() => {
+        setTapping(prev => !prev);
+        setProgress(prev => {
+          const newProgress = prev + 3 + Math.random() * 2;
+          if (newProgress >= 100) {
+            setPhase('finished');
+            return 100;
+          }
+          return newProgress;
+        });
+        setOpponentProgress(prev => Math.min(prev + 2 + Math.random() * 1.5, 85));
+      }, 150);
+      return () => clearInterval(interval);
+    }
+
+    if (phase === 'finished') {
+      const timer = setTimeout(runDemo, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [phase]);
+
+  return (
+    <div className="w-72 shrink-0">
+      <h3 className="text-xl font-display font-black text-cyan-400 mb-3 text-center">DEMO</h3>
+      <div className="cyber-card rounded-2xl p-4 border-2 border-cyan-500/50 bg-slate-900/80">
+        {/* Race Track */}
+        <div className="mb-4">
+          <p className="text-xs font-mono text-slate-500 mb-2">RACE TRACK</p>
+          
+          {/* Player track */}
+          <div className="relative h-8 bg-slate-800 rounded-full mb-2 overflow-hidden">
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 text-lg">🏁</div>
+            <div 
+              className="absolute top-1/2 -translate-y-1/2 text-2xl transition-all duration-100"
+              style={{ left: `${Math.min(progress, 90)}%` }}
+            >
+              🏃
+            </div>
+            <div 
+              className="absolute bottom-0 left-0 h-full bg-cyan-500/30 transition-all duration-100"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          
+          {/* Opponent track */}
+          <div className="relative h-6 bg-slate-800/50 rounded-full overflow-hidden">
+            <div 
+              className="absolute top-1/2 -translate-y-1/2 text-lg opacity-60 transition-all duration-100"
+              style={{ left: `${Math.min(opponentProgress, 85)}%` }}
+            >
+              🏃
+            </div>
+            <div 
+              className="absolute bottom-0 left-0 h-full bg-slate-500/20 transition-all duration-100"
+              style={{ width: `${opponentProgress}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Tap Button */}
+        <div 
+          className={`py-4 rounded-xl text-center font-display font-bold transition-all ${
+            phase === 'finished' 
+              ? 'bg-emerald-500/30 text-emerald-300 border-2 border-emerald-400'
+              : tapping
+              ? 'bg-cyan-400 text-slate-900 scale-95'
+              : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white'
+          }`}
+        >
+          {phase === 'finished' ? '🏆 1ST PLACE!' : phase === 'ready' ? 'GET READY...' : 'TAP! TAP! TAP!'}
+        </div>
+
+        {/* Progress */}
+        <div className="mt-3 text-center">
+          <p className="text-cyan-400 font-mono text-sm font-bold">{Math.round(progress)}%</p>
+          <p className="text-slate-500 font-mono text-xs">TAP FASTER TO WIN</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Animated RPS Demo for Round 2 rules
+const RPSDemo = () => {
+  const [round, setRound] = useState(1);
+  const [phase, setPhase] = useState<'countdown' | 'throw' | 'clash' | 'result'>('countdown');
+  const [playerChoice, setPlayerChoice] = useState<'rock' | 'paper' | 'scissors'>('rock');
+  const [aivaChoice, setAivaChoice] = useState<'rock' | 'paper' | 'scissors'>('scissors');
+  const [result, setResult] = useState<'win' | 'draw' | 'lose'>('win');
+  const [score, setScore] = useState(0);
+  const [countdown, setCountdown] = useState(3);
+
+  const icons = { rock: '✊', paper: '✋', scissors: '✌️' };
+  const names = { rock: 'ROCK', paper: 'PAPER', scissors: 'SCISSORS' };
+
+  // Determine result
+  const getResult = (player: string, aiva: string): 'win' | 'draw' | 'lose' => {
+    if (player === aiva) return 'draw';
+    if (
+      (player === 'rock' && aiva === 'scissors') ||
+      (player === 'paper' && aiva === 'rock') ||
+      (player === 'scissors' && aiva === 'paper')
+    ) return 'win';
+    return 'lose';
+  };
+
+  useEffect(() => {
+    // Demo scenarios: WIN, DRAW, LOSE
+    const scenarios: { player: 'rock' | 'paper' | 'scissors'; aiva: 'rock' | 'paper' | 'scissors' }[] = [
+      { player: 'rock', aiva: 'scissors' },     // WIN - Rock crushes Scissors
+      { player: 'paper', aiva: 'paper' },       // DRAW - Both Paper
+      { player: 'scissors', aiva: 'rock' },     // LOSE - Rock crushes Scissors
+    ];
+
+    if (phase === 'countdown') {
+      if (countdown > 0) {
+        const timer = setTimeout(() => setCountdown(prev => prev - 1), 400);
+        return () => clearTimeout(timer);
+      } else {
+        // Set the scenario for this round
+        const scenario = scenarios[(round - 1) % 3];
+        setPlayerChoice(scenario.player);
+        setAivaChoice(scenario.aiva);
+        setPhase('throw');
+      }
+    }
+
+    if (phase === 'throw') {
+      const timer = setTimeout(() => setPhase('clash'), 600);
+      return () => clearTimeout(timer);
+    }
+
+    if (phase === 'clash') {
+      const timer = setTimeout(() => {
+        const res = getResult(playerChoice, aivaChoice);
+        setResult(res);
+        setScore(prev => prev + (res === 'win' ? 3 : res === 'draw' ? 1 : 0));
+        setPhase('result');
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+
+    if (phase === 'result') {
+      const timer = setTimeout(() => {
+        if (round >= 3) {
+          // Reset after showing all 3 scenarios
+          setTimeout(() => {
+            setRound(1);
+            setScore(0);
+            setCountdown(3);
+            setPhase('countdown');
+          }, 1000);
+        } else {
+          setRound(prev => prev + 1);
+          setCountdown(3);
+          setPhase('countdown');
+        }
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [phase, round, countdown, playerChoice, aivaChoice]);
+
+  return (
+    <div className="w-80 shrink-0">
+      <h3 className="text-xl font-display font-black text-pink-400 mb-3 text-center">DEMO</h3>
+      <div className="cyber-card rounded-2xl p-4 border-2 border-pink-500/50 bg-slate-900/80 overflow-hidden">
+        {/* Header - Round & Score */}
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-pink-400 font-display font-bold text-sm">ROUND {round}/3</span>
+            <span className={`text-xs px-2 py-0.5 rounded font-mono font-bold ${
+              round === 1 ? 'bg-emerald-500/20 text-emerald-400' :
+              round === 2 ? 'bg-yellow-500/20 text-yellow-400' :
+              'bg-red-500/20 text-red-400'
+            }`}>
+              {round === 1 ? 'WIN' : round === 2 ? 'DRAW' : 'LOSE'}
+            </span>
+          </div>
+          <span className="text-pink-400 font-mono text-sm font-bold bg-pink-500/20 px-3 py-1 rounded-full">{score} PTS</span>
+        </div>
+
+        {/* Battle Arena */}
+        <div className="relative bg-gradient-to-b from-slate-800/80 to-slate-900/80 rounded-xl p-4 border border-pink-500/30">
+          {/* Countdown overlay */}
+          {phase === 'countdown' && countdown > 0 && (
+            <div className="absolute inset-0 bg-slate-900/90 rounded-xl flex items-center justify-center z-10">
+              <div className="text-center">
+                <p className="text-6xl font-display font-black text-pink-400 animate-pulse">{countdown}</p>
+                <p className="text-pink-400/60 font-mono text-xs mt-2">GET READY!</p>
+              </div>
+            </div>
+          )}
+
+          {/* VS Battle Layout */}
+          <div className="flex items-center justify-between">
+            {/* Player Side */}
+            <div className="text-center flex-1">
+              <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-cyan-500/20 border-2 border-cyan-500/50 flex items-center justify-center">
+                <span className="text-cyan-400 font-bold text-sm">YOU</span>
+              </div>
+              <div className={`text-5xl transition-all duration-300 ${
+                phase === 'throw' ? 'animate-bounce scale-125' : 
+                phase === 'clash' || phase === 'result' ? 'scale-110' : ''
+              } ${phase === 'result' && result === 'win' ? 'drop-shadow-[0_0_10px_rgba(34,197,94,0.8)]' : ''}`}>
+                {phase === 'countdown' ? '✊' : icons[playerChoice]}
+              </div>
+              {(phase === 'clash' || phase === 'result') && (
+                <p className="text-cyan-400 font-mono text-xs mt-2 font-bold">{names[playerChoice]}</p>
+              )}
+            </div>
+
+            {/* VS Divider with clash effect */}
+            <div className="relative mx-2">
+              <div className={`font-display font-black text-lg transition-all ${
+                phase === 'clash' ? 'text-yellow-400 scale-150 animate-pulse' : 'text-pink-400'
+              }`}>
+                {phase === 'clash' ? '⚡' : 'VS'}
+              </div>
+              {phase === 'clash' && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-8 h-8 bg-yellow-400/30 rounded-full animate-ping" />
+                </div>
+              )}
+            </div>
+
+            {/* AIVA Side */}
+            <div className="text-center flex-1">
+              <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-pink-500/20 border-2 border-pink-500/50 flex items-center justify-center">
+                <span className="text-pink-400 font-bold text-xs">AIVA</span>
+              </div>
+              <div className={`text-5xl transition-all duration-300 ${
+                phase === 'countdown' ? 'animate-pulse' :
+                phase === 'throw' ? 'animate-bounce scale-125' : 
+                phase === 'clash' || phase === 'result' ? 'scale-110' : ''
+              } ${phase === 'result' && result === 'lose' ? 'drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]' : ''}`}>
+                {phase === 'countdown' ? '🤖' : phase === 'throw' ? '❓' : icons[aivaChoice]}
+              </div>
+              {(phase === 'clash' || phase === 'result') && (
+                <p className="text-pink-400 font-mono text-xs mt-2 font-bold">{names[aivaChoice]}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Result Banner */}
+        <div className={`mt-3 py-3 rounded-xl text-center font-display font-bold text-lg transition-all ${
+          phase === 'result' 
+            ? result === 'win' 
+              ? 'bg-gradient-to-r from-emerald-500/30 to-emerald-600/30 border-2 border-emerald-400 text-emerald-300 shadow-[0_0_20px_rgba(34,197,94,0.3)]'
+              : result === 'draw'
+              ? 'bg-gradient-to-r from-yellow-500/30 to-amber-500/30 border-2 border-yellow-400 text-yellow-300 shadow-[0_0_20px_rgba(234,179,8,0.3)]'
+              : 'bg-gradient-to-r from-red-500/30 to-red-600/30 border-2 border-red-400 text-red-300 shadow-[0_0_20px_rgba(239,68,68,0.3)]'
+            : 'bg-slate-800/50 border border-slate-700/50 text-slate-400'
+        }`}>
+          {phase === 'countdown' && <span>ROCK... PAPER... SCISSORS...</span>}
+          {phase === 'throw' && <span className="animate-pulse">SHOOT! 🎯</span>}
+          {phase === 'clash' && <span className="animate-pulse">⚡ CLASH! ⚡</span>}
+          {phase === 'result' && (
+            <div className="flex items-center justify-center gap-2">
+              <span>
+                {result === 'win' && '🎉 YOU WIN!'}
+                {result === 'draw' && '🤝 DRAW!'}
+                {result === 'lose' && '💀 AIVA WINS!'}
+              </span>
+              <span className={`text-sm px-2 py-0.5 rounded-full ${
+                result === 'win' ? 'bg-emerald-500/50' :
+                result === 'draw' ? 'bg-yellow-500/50' : 'bg-red-500/50'
+              }`}>
+                +{result === 'win' ? '3' : result === 'draw' ? '1' : '0'}pts
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Scoring legend */}
+        <div className="mt-2 flex justify-center gap-4 text-xs font-mono">
+          <span className="text-emerald-400 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" /> WIN=3</span>
+          <span className="text-yellow-400 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400" /> DRAW=1</span>
+          <span className="text-red-400 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400" /> LOSE=0</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Animated Timer Demo Component for Round 3 rules
+const TimerDemo = () => {
+  const [demoTime, setDemoTime] = useState(0);
+  const [demoPhase, setDemoPhase] = useState<'countdown' | 'running' | 'fading' | 'stopped' | 'result'>('countdown');
+  const [countdown, setCountdown] = useState(3);
+  const demoStartRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // Reset and loop the demo
+    const runDemo = () => {
+      setDemoPhase('countdown');
+      setCountdown(3);
+      setDemoTime(0);
+      demoStartRef.current = null;
+    };
+
+    // Countdown phase
+    if (demoPhase === 'countdown' && countdown > 0) {
+      const timer = setTimeout(() => setCountdown(prev => prev - 1), 600);
+      return () => clearTimeout(timer);
+    }
+
+    // Start running after countdown
+    if (demoPhase === 'countdown' && countdown === 0) {
+      setDemoPhase('running');
+      demoStartRef.current = performance.now();
+    }
+
+    // Running phase - update timer rapidly
+    if (demoPhase === 'running' || demoPhase === 'fading') {
+      const interval = setInterval(() => {
+        if (demoStartRef.current) {
+          const elapsed = (performance.now() - demoStartRef.current) / 1000;
+          setDemoTime(elapsed);
+          
+          // Start fading at 3 seconds
+          if (elapsed >= 3 && demoPhase === 'running') {
+            setDemoPhase('fading');
+          }
+          
+          // Stop at 7.7 seconds
+          if (elapsed >= 7.7) {
+            setDemoTime(7.7);
+            setDemoPhase('stopped');
+            clearInterval(interval);
+          }
+        }
+      }, 50);
+      return () => clearInterval(interval);
+    }
+
+    // Show result then restart
+    if (demoPhase === 'stopped') {
+      const timer = setTimeout(() => setDemoPhase('result'), 500);
+      return () => clearTimeout(timer);
+    }
+
+    if (demoPhase === 'result') {
+      const timer = setTimeout(runDemo, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [demoPhase, countdown]);
+
+  const fadeOpacity = demoPhase === 'fading' ? Math.max(0, 1 - (demoTime - 3) / 3) : 1;
+  const showTimer = demoPhase === 'running' || demoPhase === 'fading';
+  const showHidden = demoPhase === 'fading' && demoTime >= 6;
+
+  return (
+    <div className="w-72 shrink-0">
+      <h3 className="text-xl font-display font-black text-emerald-400 mb-3 text-center">DEMO</h3>
+      <div className="cyber-card rounded-2xl p-4 border-2 border-emerald-500/50 bg-slate-900/80">
+        <div className="text-center">
+          <Timer className={`w-10 h-10 mx-auto mb-3 transition-colors ${
+            demoPhase === 'stopped' || demoPhase === 'result' ? 'text-emerald-400' : 'text-cyan-400'
+          }`} />
+          
+          {/* Countdown */}
+          {demoPhase === 'countdown' && countdown > 0 && (
+            <div className="h-14 flex items-center justify-center">
+              <p className="text-5xl font-display font-black text-yellow-400 animate-pulse">{countdown}</p>
+            </div>
+          )}
+          
+          {/* Running Timer */}
+          {showTimer && !showHidden && (
+            <div className="h-14 flex items-center justify-center">
+              <p 
+                className="text-3xl font-mono font-black text-cyan-400 transition-opacity"
+                style={{ opacity: fadeOpacity }}
+              >
+                {demoTime.toFixed(6)}
+              </p>
+            </div>
+          )}
+          
+          {/* Hidden Timer */}
+          {showHidden && (
+            <div className="h-14 flex items-center justify-center">
+              <p className="text-3xl font-mono font-black text-purple-400 animate-pulse">??.??????</p>
+            </div>
+          )}
+          
+          {/* Stopped */}
+          {(demoPhase === 'stopped' || demoPhase === 'result') && (
+            <div className="h-14 flex items-center justify-center">
+              <p className="text-3xl font-mono font-black text-emerald-400">7.700000</p>
+            </div>
+          )}
+          
+          {/* Stop Button */}
+          <div className={`mt-3 py-3 px-4 rounded-xl font-display font-bold text-sm transition-all ${
+            demoPhase === 'stopped' || demoPhase === 'result'
+              ? 'bg-emerald-500/30 text-emerald-300 border-2 border-emerald-400'
+              : showTimer
+              ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white animate-pulse'
+              : 'bg-slate-700 text-slate-400'
+          }`}>
+            {demoPhase === 'stopped' || demoPhase === 'result' ? '✓ STOPPED!' : 'STOP'}
+          </div>
+          
+          {/* Result */}
+          {demoPhase === 'result' && (
+            <div className="mt-3 p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/40">
+              <p className="text-emerald-300 font-display font-bold text-xs">PERFECT! 0.000s OFF</p>
+            </div>
+          )}
+          
+          {/* Target reminder */}
+          <p className="text-slate-500 font-mono text-xs mt-3">TARGET: 7.7s</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const MainStage = () => {
   const { gameId } = useParams();
   const navigate = useNavigate();
@@ -200,13 +658,22 @@ const MainStage = () => {
   const [phase, setPhase] = useState<GamePhase>('story-intro');
   const [storySlide, setStorySlide] = useState(0);
   const [showTrialIntro, setShowTrialIntro] = useState(false);
-  const [eventIdCopied, setEventIdCopied] = useState(false);
   
   // Elimination state
   const [eliminationRankings, setEliminationRankings] = useState<PlayerWithProgress[]>([]);
   const [revealedRank, setRevealedRank] = useState(0);
-  const [champion, setChampion] = useState<Player | null>(null);
   const [championRevealStep, setChampionRevealStep] = useState(0);
+  const [championRevealStage, setChampionRevealStage] = useState<'pending' | 'third' | 'second' | 'first'>('pending');
+  
+  // Closure state
+  const [closureStep, setClosureStep] = useState(0);
+  const rulesAudioRef = useRef<HTMLAudioElement | null>(null);
+  const closureAudioRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Prize reveal state
+  const [prizeRevealIndex, setPrizeRevealIndex] = useState(0);
+  const [prizeRevealed, setPrizeRevealed] = useState(false);
+  const [prizeAnimationPhase, setPrizeAnimationPhase] = useState<'entering' | 'name' | 'box' | 'revealed'>('entering');
   
   // Audio/Visual state
   const [, setGenesisState] = useState<GenesisState>(GenesisState.IDLE);
@@ -401,12 +868,13 @@ const MainStage = () => {
 
   // Start trial (show intro first)
   const startTrialIntro = (stage: number) => {
+    setPhase('trial-intro'); // Set phase to trial-intro
     setShowTrialIntro(true);
-    // Play narration for the trial
-    const trialInfo = ROUND_INSTRUCTIONS[stage as keyof typeof ROUND_INSTRUCTIONS];
-    if (trialInfo) {
-      playNarration(`${trialInfo.title}. ${trialInfo.objective}. ${trialInfo.rules.join('. ')}. WARNING: ${trialInfo.elimination}.`);
-    }
+    // Play narration for the trial (disabled - using MP3 instead)
+    // const trialInfo = ROUND_INSTRUCTIONS[stage as keyof typeof ROUND_INSTRUCTIONS];
+    // if (trialInfo) {
+    //   playNarration(`${trialInfo.title}. ${trialInfo.objective}. ${trialInfo.rules.join('. ')}. WARNING: ${trialInfo.elimination}.`);
+    // }
   };
 
   // Begin trial after intro
@@ -427,11 +895,12 @@ const MainStage = () => {
     }).eq('id', gameId);
   };
 
-  // Show elimination screen after trial
-  const showEliminationScreen = () => {
+  // Show prize reveal ceremony after trial (then elimination screen)
+  const showPrizeRevealCeremony = () => {
     if (!gameSession) return;
     
     const currentStage = gameSession.current_stage || 0;
+    const roundNumber = gameSession.round_number || 1;
     const stageScores = scores.filter(s => s.stage === currentStage);
     const activePlayers = players.filter(p => !p.is_spectator && !p.is_kicked && !p.is_eliminated);
     
@@ -452,11 +921,36 @@ const MainStage = () => {
     
     setEliminationRankings(playersWithScores);
     setRevealedRank(0);
-    setPhase('elimination');
     
-    // Play elimination narration
+    // Reset prize reveal state
+    setPrizeRevealIndex(0);
+    setPrizeRevealed(false);
+    setPrizeAnimationPhase('entering');
+    
+    // Round 3: Skip standings, go directly to cinematic champion reveal
+    if (roundNumber === 3) {
+      setChampionRevealStep(0);
+      setChampionRevealStage('pending'); // Start with buildup, wait for admin to reveal 3rd
+      setPhase('champion');
+      playNarration('THE PROTOCOL IS COMPLETE. THREE FINALISTS REMAIN. LET US REVEAL THEIR FATES.');
+      return;
+    }
+    
+    // Other rounds: Go to standings reveal first, then prize ceremony
+    setPhase('standings-reveal');
+    
+    // Play standings narration
+    const totalPlayers = playersWithScores.length;
+    playNarration(`ROUND ${currentStage} COMPLETE. BEHOLD THE RANKINGS OF ALL ${totalPlayers} CANDIDATES.`);
+  };
+  
+  // Proceed from standings to prize reveal
+  const proceedToPrizeReveal = () => {
+    const currentStage = gameSession?.current_stage || 0;
     const eliminateCount = ELIMINATIONS[currentStage] || 0;
-    playNarration(`ROUND ${currentStage} COMPLETE. CALCULATING RESULTS. ${eliminateCount} CANDIDATES WILL BE ELIMINATED.`);
+    
+    setPhase('prize-reveal');
+    playNarration(`NOW LET US REVEAL THE PRIZES FOR OUR ${eliminateCount} DEPARTING CANDIDATES.`);
   };
 
   // Continue from elimination to session end
@@ -491,12 +985,10 @@ const MainStage = () => {
     }).eq('id', gameId);
     
     if (roundNumber >= 3) {
-      // Final round - show champion
-      const winner = eliminationRankings[0];
-      setChampion(winner || null);
+      // Final round - show champion (handled by prize reveal flow)
       setChampionRevealStep(0);
       setPhase('champion');
-      playNarration('THE PROTOCOL IS COMPLETE. ONE HUMAN HAS PROVEN THEIR WORTH.');
+      playNarration('THE PROTOCOL IS COMPLETE. TWO CHAMPIONS REMAIN.');
     } else {
       // Session complete - show session end screen
       setPhase('session-end');
@@ -504,10 +996,10 @@ const MainStage = () => {
     }
   };
 
-  // Proceed to next trial or complete (now shows elimination first)
+  // Proceed to next trial or complete (now shows prize reveal ceremony first)
   const proceedToNext = async () => {
     if (!gameId || !gameSession) return;
-    showEliminationScreen();
+    showPrizeRevealCeremony();
   };
 
   // Kick player
@@ -547,7 +1039,7 @@ const MainStage = () => {
     if (!gameSession) return;
 
     // Don't override these phases - they are controlled by user actions
-    const protectedPhases = ['trial-intro', 'trial-countdown', 'elimination', 'champion', 'session-end', 'round-intro'];
+    const protectedPhases = ['trial-intro', 'trial-countdown', 'standings-reveal', 'prize-reveal', 'elimination', 'champion', 'closure', 'session-end', 'round-intro'];
     if (protectedPhases.includes(phase)) {
       return;
     }
@@ -581,11 +1073,131 @@ const MainStage = () => {
     }
   }, [phase, revealedRank, eliminationRankings.length]);
 
-  // Auto-advance champion reveal steps
+  // Prize reveal animation sequencer
+  useEffect(() => {
+    if (phase !== 'prize-reveal') return;
+    
+    // Reset animation phase when prize index changes
+    setPrizeAnimationPhase('entering');
+    setPrizeRevealed(false);
+    
+    // Sequence the animations
+    const timers: NodeJS.Timeout[] = [];
+    
+    // Step 1: Show rank badge (after 300ms)
+    timers.push(setTimeout(() => {
+      setPrizeAnimationPhase('name');
+    }, 300));
+    
+    // Step 2: Show name/photo (after 1000ms)
+    timers.push(setTimeout(() => {
+      setPrizeAnimationPhase('box');
+    }, 1200));
+    
+    return () => {
+      timers.forEach(t => clearTimeout(t));
+    };
+  }, [phase, prizeRevealIndex]);
+
+  // Keyboard navigation for standings reveal
+  useEffect(() => {
+    if (phase !== 'standings-reveal') return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['Enter', ' ', 'ArrowRight', 'ArrowDown'].includes(e.key)) {
+        e.preventDefault();
+        proceedToPrizeReveal();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [phase]);
+
+  // Play game rules audio when entering trial-intro phase
+  useEffect(() => {
+    // Check both phase and showTrialIntro to match render condition
+    const shouldPlayAudio = phase === 'trial-intro' && showTrialIntro;
+    
+    if (!shouldPlayAudio) {
+      // Stop rules audio when leaving phase
+      if (rulesAudioRef.current) {
+        rulesAudioRef.current.pause();
+        rulesAudioRef.current = null;
+      }
+      return;
+    }
+    
+    const roundNumber = gameSession?.round_number || 1;
+    const audioUrl = GAME_RULES_AUDIO[roundNumber];
+    
+    console.log('[Rules Audio] Phase:', phase, 'ShowTrialIntro:', showTrialIntro, 'Round:', roundNumber, 'URL:', audioUrl);
+    
+    if (audioUrl && !rulesAudioRef.current) {
+      const audio = new Audio(audioUrl);
+      rulesAudioRef.current = audio;
+      audio.volume = 1.0;
+      audio.play()
+        .then(() => console.log('[Rules Audio] Playing successfully'))
+        .catch(err => console.warn('[Rules Audio] Autoplay failed:', err));
+    }
+    
+    return () => {
+      if (rulesAudioRef.current) {
+        rulesAudioRef.current.pause();
+        rulesAudioRef.current = null;
+      }
+    };
+  }, [phase, showTrialIntro, gameSession?.round_number]);
+
+  // Keyboard navigation for prize reveal (Enter, Space, ArrowRight, ArrowDown)
+  useEffect(() => {
+    if (phase !== 'prize-reveal') return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle when animation is ready (box phase)
+      if (prizeAnimationPhase !== 'box') return;
+      
+      // Accept Enter, Space, ArrowRight, or ArrowDown
+      if (['Enter', ' ', 'ArrowRight', 'ArrowDown'].includes(e.key)) {
+        e.preventDefault();
+        
+        const roundNumber = gameSession?.round_number || 1;
+        const eliminatedPositions = getEliminatedPositions(roundNumber);
+        const isLastPrize = prizeRevealIndex >= eliminatedPositions.length - 1;
+        
+        if (!prizeRevealed) {
+          // Reveal prize first
+          setPrizeRevealed(true);
+        } else if (isLastPrize) {
+          if (roundNumber === 3) {
+            // Round 3: After 3rd place, go to champion reveal (1st & 2nd together)
+            setChampionRevealStep(0);
+            setPhase('champion');
+          } else {
+            // Other rounds: Move to elimination screen
+            setPhase('elimination');
+          }
+        } else {
+          // Next prize
+          setPrizeRevealIndex(prev => prev + 1);
+          setPrizeRevealed(false);
+          setPrizeAnimationPhase('entering');
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [phase, prizeAnimationPhase, prizeRevealed, prizeRevealIndex, gameSession?.round_number]);
+
+  // Auto-advance champion reveal steps (text buildup only, then wait for admin)
   useEffect(() => {
     const CHAMPION_STEPS_LENGTH = 5; // Number of steps in CHAMPION_STEPS
+    
+    // Auto-advance through buildup text (steps 0-3), step 4 waits for admin
     if (phase === 'champion' && championRevealStep < CHAMPION_STEPS_LENGTH - 1) {
-      const durations = [2500, 2500, 3000, 2500, 0];
+      const durations = [2500, 2500, 2500, 2500, 0];
       const duration = durations[championRevealStep];
       if (duration > 0) {
         const timer = setTimeout(() => {
@@ -594,7 +1206,82 @@ const MainStage = () => {
         return () => clearTimeout(timer);
       }
     }
+    // Note: Step 4 (REVEAL) has duration 0, so it stops here and waits for admin input
   }, [phase, championRevealStep]);
+
+  // Keyboard navigation for champion reveal (staged reveal)
+  useEffect(() => {
+    if (phase !== 'champion') return;
+    
+    const CHAMPION_STEPS_LENGTH = 5;
+    const isAtRevealStep = championRevealStep >= CHAMPION_STEPS_LENGTH - 1;
+    
+    // Only handle keyboard after buildup is complete (at "REVEAL" step)
+    if (!isAtRevealStep) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['Enter', ' ', 'ArrowRight', 'ArrowDown'].includes(e.key)) {
+        e.preventDefault();
+        
+        // Flow: pending → third → second → first → closure
+        if (championRevealStage === 'pending') {
+          // First Enter: Reveal 3rd place
+          setChampionRevealStage('third');
+        } else if (championRevealStage === 'third') {
+          // Reveal 2nd place
+          setChampionRevealStage('second');
+        } else if (championRevealStage === 'second') {
+          // Reveal 1st place - THE PEAK MOMENT
+          setChampionRevealStage('first');
+        } else if (championRevealStage === 'first') {
+          // Proceed to closure screen
+          setClosureStep(0);
+          setPhase('closure');
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [phase, championRevealStep, championRevealStage]);
+
+  // Auto-advance closure steps and play closure audio
+  useEffect(() => {
+    if (phase !== 'closure') {
+      // Stop closure audio when leaving phase
+      if (closureAudioRef.current) {
+        closureAudioRef.current.pause();
+        closureAudioRef.current = null;
+      }
+      return;
+    }
+    
+    // Play closure audio on first enter
+    if (!closureAudioRef.current) {
+      const audio = new Audio(CLOSURE_AUDIO_URL);
+      closureAudioRef.current = audio;
+      audio.volume = 1.0;
+      audio.play().catch(err => console.warn('Closure audio autoplay failed:', err));
+    }
+    
+    // Timing for each closure line (in ms from start)
+    const CLOSURE_TIMINGS = [0, 3000, 6000, 10000, 11000, 15000, 18000, 21000, 25000, 29000, 33000];
+    
+    const timers: NodeJS.Timeout[] = [];
+    
+    CLOSURE_TIMINGS.forEach((delay, index) => {
+      if (index > closureStep) {
+        const timer = setTimeout(() => {
+          setClosureStep(index);
+        }, delay - CLOSURE_TIMINGS[closureStep]);
+        timers.push(timer);
+      }
+    });
+    
+    return () => {
+      timers.forEach(t => clearTimeout(t));
+    };
+  }, [phase, closureStep]);
 
   // Real-time subscriptions - Use payload directly to avoid refetch cascade
   useEffect(() => {
@@ -668,7 +1355,18 @@ const MainStage = () => {
     return playersToUse.map((player) => {
       const scoreRecord = stageScores.find((s) => s.player_id === player.id);
       const progressRecord = stageProgress.find((p) => p.player_id === player.id);
-      return { ...player, score: scoreRecord?.score, progress: progressRecord };
+      
+      // For RPS (stage 2), use real-time current_score from progress if available
+      // This updates after each round, while stageScores only updates at the end
+      const currentStage = gameSession.current_stage;
+      let score = scoreRecord?.score;
+      
+      if (currentStage === 2 && progressRecord?.current_score !== undefined) {
+        // Use real-time score from progress for RPS
+        score = progressRecord.current_score;
+      }
+      
+      return { ...player, score, progress: progressRecord };
     });
   };
 
@@ -871,43 +1569,43 @@ const MainStage = () => {
     const msg = roundMessages[roundNumber as 2 | 3] || roundMessages[2];
     
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center cyber-bg relative overflow-hidden p-8">
+      <div className="min-h-screen flex flex-col items-center justify-center cyber-bg relative overflow-hidden p-10">
         <div className="grid-overlay" />
         <div className="scanline" />
         
         {/* Ambient glow */}
-        <div className="fixed top-1/4 left-1/4 w-[400px] h-[400px] bg-purple-500/20 rounded-full blur-[120px] animate-pulse" />
-        <div className="fixed bottom-1/4 right-1/4 w-[400px] h-[400px] bg-cyan-500/15 rounded-full blur-[120px] animate-pulse" />
+        <div className="fixed top-1/4 left-1/4 w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[150px] animate-pulse" />
+        <div className="fixed bottom-1/4 right-1/4 w-[500px] h-[500px] bg-cyan-500/15 rounded-full blur-[150px] animate-pulse" />
         
         {/* 3D Logo */}
-        <div className="relative w-[250px] h-[250px] mb-8">
+        <div className="relative w-[300px] h-[300px] mb-10">
           <BrandLogo3D />
         </div>
         
         {/* Round intro content */}
-        <div className="relative z-10 text-center max-w-3xl animate-fadeIn">
-          <p className="text-cyan-400 font-mono text-lg mb-2 tracking-widest">ROUND 0{roundNumber}</p>
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-cyan-400 mb-4">
+        <div className="relative z-10 text-center max-w-5xl animate-fadeIn">
+          <p className="text-cyan-400 font-mono text-2xl mb-4 tracking-widest font-bold">ROUND 0{roundNumber}</p>
+          <h1 className="text-6xl md:text-8xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-cyan-400 mb-6">
             {msg.title}
           </h1>
-          <p className="text-2xl text-white font-display mb-6">{msg.subtitle}</p>
-          <p className="text-slate-400 font-mono text-lg mb-8">{msg.description}</p>
+          <p className="text-4xl text-white font-display font-bold mb-8">{msg.subtitle}</p>
+          <p className="text-slate-300 font-mono text-2xl mb-10 font-bold">{msg.description}</p>
           
-          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 mb-8">
-            <p className="text-red-400 font-display text-xl">⚠ {msg.warning}</p>
+          <div className="p-6 rounded-2xl bg-red-500/10 border-2 border-red-500/40 mb-10">
+            <p className="text-red-400 font-display text-3xl font-black">⚠ {msg.warning}</p>
           </div>
           
-          <div className="flex items-center justify-center gap-4 text-slate-500 font-mono text-sm mb-8">
+          <div className="flex items-center justify-center gap-6 text-slate-400 font-mono text-xl mb-10 font-bold">
             <span>EXPECTED CANDIDATES: {expectedPlayers}</span>
-            <span className="w-1 h-1 bg-cyan-500 rounded-full" />
+            <span className="w-2 h-2 bg-cyan-500 rounded-full" />
             <span>AWAITING REGISTRATION</span>
           </div>
           
           <button
             onClick={() => setPhase('lobby')}
-            className="cyber-btn px-12 py-5 rounded-xl flex items-center gap-4 mx-auto text-xl"
+            className="cyber-btn px-16 py-6 rounded-2xl flex items-center gap-6 mx-auto text-3xl font-black"
           >
-            <Play className="w-6 h-6" />
+            <Play className="w-10 h-10" />
             <span className="font-display">BEGIN REGISTRATION</span>
           </button>
         </div>
@@ -921,72 +1619,35 @@ const MainStage = () => {
   if (phase === 'session-end') {
     const roundNumber = gameSession.round_number || 1;
     const survivorCount = roundNumber === 1 ? 6 : roundNumber === 2 ? 3 : 1;
-    const eventId = gameEvent?.id || gameSession.event_id || '';
-    
-    const handleCopyEventId = () => {
-      navigator.clipboard.writeText(eventId);
-      setEventIdCopied(true);
-      setTimeout(() => setEventIdCopied(false), 2000);
-    };
     
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center cyber-bg relative overflow-hidden p-8">
+      <div className="min-h-screen flex flex-col items-center justify-center cyber-bg relative overflow-hidden p-10">
         <div className="grid-overlay" />
         <div className="scanline" />
         
         {/* Ambient glow */}
-        <div className="fixed top-1/4 left-1/4 w-[400px] h-[400px] bg-emerald-500/20 rounded-full blur-[120px] animate-pulse" />
-        <div className="fixed bottom-1/4 right-1/4 w-[400px] h-[400px] bg-purple-500/15 rounded-full blur-[120px] animate-pulse" />
+        <div className="fixed top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/20 rounded-full blur-[150px] animate-pulse" />
+        <div className="fixed bottom-1/4 right-1/4 w-[500px] h-[500px] bg-purple-500/15 rounded-full blur-[150px] animate-pulse" />
         
         {/* 3D Logo */}
-        <div className="relative w-[200px] h-[200px] mb-8">
+        <div className="relative w-[280px] h-[280px] mb-10">
           <BrandLogo3D />
         </div>
         
-        <div className="relative z-10 text-center max-w-3xl animate-fadeIn">
-          <p className="text-emerald-400 font-mono text-lg mb-2 tracking-widest">SESSION COMPLETE</p>
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-cyan-500 to-purple-400 mb-4">
+        <div className="relative z-10 text-center max-w-5xl animate-fadeIn">
+          <p className="text-emerald-400 font-mono text-2xl mb-4 tracking-widest font-bold">SESSION COMPLETE</p>
+          <h1 className="text-6xl md:text-8xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-cyan-500 to-purple-400 mb-6">
             ROUND 0{roundNumber} COMPLETE
           </h1>
-          <p className="text-2xl text-white font-display mb-8">
+          <p className="text-4xl text-white font-display font-bold mb-10">
             {survivorCount} SURVIVOR{survivorCount > 1 ? 'S' : ''} ADVANCE TO ROUND 0{roundNumber + 1}
           </p>
           
-          {/* Event ID for admin */}
-          <div className="p-6 rounded-xl bg-slate-900/80 border border-purple-500/30 mb-8">
-            <p className="text-purple-400 font-mono text-sm mb-3">EVENT ID FOR NEXT ROUND</p>
-            <div className="flex items-center justify-center gap-4">
-              <code className="text-2xl text-cyan-400 font-mono bg-slate-800 px-6 py-3 rounded-lg">
-                {eventId.slice(0, 8)}...
-              </code>
-              <button
-                onClick={handleCopyEventId}
-                className="p-3 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors"
-                aria-label="Copy event ID"
-              >
-                {eventIdCopied ? (
-                  <Check className="w-6 h-6 text-emerald-400" />
-                ) : (
-                  <Copy className="w-6 h-6 text-slate-400" />
-                )}
-              </button>
-            </div>
-            <p className="text-slate-500 font-mono text-xs mt-3">
-              Use this ID to continue with Round {roundNumber + 1}
-            </p>
-          </div>
-          
-          <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700 mb-8">
-            <p className="text-slate-400 font-mono text-sm">
-              🎤 HR TEAM: Announce prizes for eliminated candidates
-            </p>
-          </div>
-          
           <button
             onClick={() => navigate('/')}
-            className="cyber-btn px-12 py-4 rounded-xl flex items-center gap-4 mx-auto"
+            className="cyber-btn px-16 py-6 rounded-2xl flex items-center gap-6 mx-auto text-2xl font-black"
           >
-            <Home className="w-5 h-5" />
+            <Home className="w-8 h-8" />
             <span className="font-display">RETURN TO ADMIN</span>
           </button>
         </div>
@@ -1004,75 +1665,75 @@ const MainStage = () => {
     const playerLabel = 'CANDIDATES';
     
     return (
-      <div className="min-h-screen p-8 cyber-bg relative overflow-hidden">
+      <div className="min-h-screen p-10 cyber-bg relative overflow-hidden">
         <div className="grid-overlay" />
         
         {/* 3D Brand Logo - Fixed left side, vertically centered */}
-        <div className="fixed left-0 top-0 bottom-0 w-[380px] z-10 flex items-center justify-center">
+        <div className="fixed left-0 top-0 bottom-0 w-[420px] z-10 flex items-center justify-center">
           <div className="relative flex flex-col items-center">
             {/* Ambient glow */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-              <div className="w-80 h-80 bg-gradient-to-r from-pink-500/30 via-purple-500/20 to-blue-500/30 rounded-full blur-[80px] animate-pulse" />
+              <div className="w-96 h-96 bg-gradient-to-r from-pink-500/30 via-purple-500/20 to-blue-500/30 rounded-full blur-[80px] animate-pulse" />
             </div>
             {/* 3D Logo - larger size */}
-            <div className="relative w-[340px] h-[340px]">
+            <div className="relative w-[380px] h-[380px]">
               <BrandLogo3D />
             </div>
-            <div className="mt-4 flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/90 backdrop-blur-sm border border-cyan-500/50">
-              <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
-              <span className="text-cyan-400 text-xs font-mono font-bold tracking-widest">ROUND 0{roundNumber}</span>
+            <div className="mt-6 flex items-center gap-3 px-6 py-2 rounded-full bg-slate-900/90 backdrop-blur-sm border-2 border-cyan-500/50">
+              <span className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse" />
+              <span className="text-cyan-400 text-lg font-mono font-black tracking-widest">ROUND 0{roundNumber}</span>
             </div>
           </div>
         </div>
 
-        <div className="relative z-10 ml-[380px]">
+        <div className="relative z-10 ml-[420px]">
           {/* Header */}
-          <div className="text-center mb-8">
-            <img src="/title_CyberGenesis.png" alt="Cyber Genesis" className="h-20 object-contain mx-auto mb-4 genesis-glow" />
-            <p className="text-xl text-slate-400 font-mono">{lobbyTitle}</p>
+          <div className="text-center mb-10">
+            <img src="/title_CyberGenesis.png" alt="Cyber Genesis" className="h-28 object-contain mx-auto mb-6 genesis-glow" />
+            <p className="text-3xl text-slate-300 font-mono font-bold tracking-wide">{lobbyTitle}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 gap-10 max-w-6xl mx-auto">
             {/* QR Code */}
-            <div className="cyber-card rounded-2xl p-8 neon-border-purple text-center">
-              <h2 className="text-2xl font-bold text-white mb-6 font-display tracking-wider">SCAN TO ENTER</h2>
-              <div className="qr-container bg-white p-6 rounded-xl inline-block mb-6">
-                <QRCodeSVG value={joinUrl} size={180} />
+            <div className="cyber-card rounded-3xl p-10 neon-border-purple text-center">
+              <h2 className="text-4xl font-black text-white mb-8 font-display tracking-wider">SCAN TO ENTER</h2>
+              <div className="qr-container bg-white p-8 rounded-2xl inline-block mb-8">
+                <QRCodeSVG value={joinUrl} size={240} />
               </div>
-              <p className="text-slate-400 font-mono text-xs break-all">{joinUrl}</p>
-              <div className="mt-6 flex items-center justify-center gap-3 text-cyan-400">
-                <Users className="w-6 h-6" />
-                <span className="text-3xl font-bold font-display">{activePlayers.length}/{maxPlayers}</span>
+              <p className="text-slate-400 font-mono text-sm break-all font-bold">{joinUrl}</p>
+              <div className="mt-8 flex items-center justify-center gap-4 text-cyan-400">
+                <Users className="w-10 h-10" />
+                <span className="text-5xl font-black font-display">{activePlayers.length}/{maxPlayers}</span>
               </div>
             </div>
 
             {/* Players Grid */}
-            <div className="cyber-card rounded-2xl p-8 neon-border">
-              <h2 className="text-2xl font-bold text-white mb-6 font-display tracking-wider text-center">{playerLabel}</h2>
-              <div className={`grid gap-3 ${roundNumber === 3 ? 'grid-cols-3' : roundNumber === 2 ? 'grid-cols-3' : 'grid-cols-5'}`}>
+            <div className="cyber-card rounded-3xl p-10 neon-border">
+              <h2 className="text-4xl font-black text-white mb-8 font-display tracking-wider text-center">{playerLabel}</h2>
+              <div className={`grid gap-5 ${roundNumber === 3 ? 'grid-cols-3' : roundNumber === 2 ? 'grid-cols-3' : 'grid-cols-5'}`}>
                 {activePlayers.map((player) => (
                   <div key={player.id} className="flex flex-col items-center animate-bounce-in relative group">
-                    <div className="w-14 h-14 rounded-full overflow-hidden border-3" style={{ borderColor: player.avatar_color }}>
+                    <div className="w-20 h-20 rounded-full overflow-hidden border-4" style={{ borderColor: player.avatar_color }}>
                       {player.photo_url ? (
                         <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-white text-lg" style={{ backgroundColor: player.avatar_color }}>
+                        <div className="w-full h-full flex items-center justify-center text-white text-2xl font-bold" style={{ backgroundColor: player.avatar_color }}>
                           {player.name[0]}
                         </div>
                       )}
                     </div>
-                    <button onClick={() => kickPlayer(player.id)} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <UserX className="w-3 h-3 text-white" />
+                    <button onClick={() => kickPlayer(player.id)} className="absolute -top-1 -right-1 w-7 h-7 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <UserX className="w-4 h-4 text-white" />
                     </button>
-                    <p className="text-white text-xs mt-1 truncate max-w-full font-mono">{player.name}</p>
+                    <p className="text-white text-sm mt-2 truncate max-w-full font-mono font-bold">{player.name}</p>
                   </div>
                 ))}
                 {Array.from({ length: Math.max(0, maxPlayers - activePlayers.length) }).map((_, i) => (
                   <div key={i} className="flex flex-col items-center opacity-30">
-                    <div className="w-14 h-14 rounded-full border-2 border-dashed border-slate-600 flex items-center justify-center">
-                      <span className="text-slate-500 text-xl">?</span>
+                    <div className="w-20 h-20 rounded-full border-3 border-dashed border-slate-600 flex items-center justify-center">
+                      <span className="text-slate-500 text-3xl font-bold">?</span>
                     </div>
-                    <p className="text-slate-500 text-xs mt-1 font-mono">...</p>
+                    <p className="text-slate-500 text-sm mt-2 font-mono font-bold">...</p>
                   </div>
                 ))}
               </div>
@@ -1080,9 +1741,9 @@ const MainStage = () => {
           </div>
 
           {/* Start Button */}
-          <div className="text-center mt-8">
-            <button onClick={() => startTrialIntro(roundNumber)} disabled={activePlayers.length === 0} className="cyber-btn px-12 py-5 rounded-xl flex items-center justify-center gap-4 mx-auto disabled:opacity-50 text-xl">
-              <Play className="w-8 h-8" />
+          <div className="text-center mt-10">
+            <button onClick={() => startTrialIntro(roundNumber)} disabled={activePlayers.length === 0} className="cyber-btn px-16 py-6 rounded-2xl flex items-center justify-center gap-6 mx-auto disabled:opacity-50 text-3xl font-black">
+              <Play className="w-12 h-12" />
               <span className="font-display tracking-wider">BEGIN ROUND 0{roundNumber}</span>
             </button>
           </div>
@@ -1091,12 +1752,12 @@ const MainStage = () => {
           {(() => {
             const info = ROUND_INSTRUCTIONS[roundNumber as keyof typeof ROUND_INSTRUCTIONS];
             return info ? (
-              <div className="flex items-center justify-center gap-4 mt-8">
-                <div className="flex items-center gap-3 px-6 py-3 rounded-xl border border-cyan-500/30 bg-slate-900/50">
-                  <span className="text-2xl">{info.icon}</span>
+              <div className="flex items-center justify-center gap-6 mt-10">
+                <div className="flex items-center gap-4 px-8 py-4 rounded-2xl border-2 border-cyan-500/40 bg-slate-900/50">
+                  <span className="text-4xl">{info.icon}</span>
                   <div>
-                    <span className="font-display text-lg text-cyan-400">ROUND 0{roundNumber}</span>
-                    <p className="font-mono text-sm text-slate-400">{STAGE_CODENAMES[roundNumber]}</p>
+                    <span className="font-display text-2xl text-cyan-400 font-bold">ROUND 0{roundNumber}</span>
+                    <p className="font-mono text-lg text-slate-300 font-bold">{STAGE_CODENAMES[roundNumber]}</p>
                   </div>
                 </div>
               </div>
@@ -1106,8 +1767,8 @@ const MainStage = () => {
 
         {/* Trial Intro Modal */}
         {showTrialIntro && (
-          <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-sm z-50 flex items-center justify-center p-8">
-            <div className="max-w-4xl w-full animate-bounce-in">
+          <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-sm z-50 flex items-center justify-center p-10">
+            <div className="max-w-5xl w-full animate-bounce-in">
               {(() => {
                 const stage = roundNumber; // Use round_number for multi-session
                 const info = ROUND_INSTRUCTIONS[stage as keyof typeof ROUND_INSTRUCTIONS];
@@ -1117,43 +1778,55 @@ const MainStage = () => {
                 const color = colorMap[info.color as keyof typeof colorMap];
                 
                 return (
-                  <div className="cyber-card rounded-3xl overflow-hidden" style={{ border: `2px solid ${color}`, boxShadow: `0 0 30px ${color}40` }}>
+                  <div className="cyber-card rounded-3xl overflow-hidden" style={{ border: `4px solid ${color}`, boxShadow: `0 0 50px ${color}50` }}>
                     {/* Header */}
-                    <div className="p-8 text-center" style={{ background: `linear-gradient(135deg, ${color}20, transparent)` }}>
-                      <span className="text-8xl mb-4 block">{info.icon}</span>
-                      <h1 className="text-5xl font-display font-bold text-white mb-2">{info.title}</h1>
-                      <p className="text-xl font-mono" style={{ color }}>{info.objective}</p>
+                    <div className="p-10 text-center" style={{ background: `linear-gradient(135deg, ${color}20, transparent)` }}>
+                      <span className="text-9xl mb-6 block">{info.icon}</span>
+                      <h1 className="text-6xl font-display font-black text-white mb-4 tracking-wide">{info.title}</h1>
+                      <p className="text-2xl font-mono font-bold" style={{ color }}>{info.objective}</p>
                     </div>
 
-                    {/* Rules */}
-                    <div className="p-8 space-y-4">
-                      <h3 className="text-xl font-display text-white mb-4">PROTOCOL RULES:</h3>
-                      {info.rules.map((rule, idx) => (
-                        <div key={idx} className="flex items-center gap-4 p-4 rounded-lg bg-slate-900/50">
-                          <span className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" style={{ backgroundColor: `${color}30`, color }}>
-                            {idx + 1}
-                          </span>
-                          <p className="text-slate-300 font-mono text-lg">{rule}</p>
+                    {/* Rules - with demo for all rounds */}
+                    <div className="p-6">
+                      <div className="flex gap-6">
+                        {/* Rules list */}
+                        <div className="space-y-3 flex-1">
+                          <h3 className="text-4xl font-display font-black text-white mb-4">PROTOCOL RULES:</h3>
+                          {info.rules.map((rule, idx) => (
+                            <div key={idx} className="flex items-center gap-4 p-4 rounded-xl bg-slate-900/50 border border-slate-700/50">
+                              <span className="w-14 h-14 rounded-full flex items-center justify-center font-black text-2xl shrink-0" style={{ backgroundColor: `${color}40`, color }}>
+                                {idx + 1}
+                              </span>
+                              <p className="text-white font-display text-2xl font-black uppercase tracking-wide">{rule}</p>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-
-                      {/* Elimination warning */}
-                      <div className="p-4 rounded-lg bg-red-500/20 border border-red-500/50 mt-6">
-                        <div className="flex items-center gap-3">
-                          <Skull className="w-6 h-6 text-red-400" />
-                          <p className="text-red-400 font-display text-lg">ELIMINATION: {info.elimination}</p>
-                        </div>
+                        
+                        {/* Demo Animations */}
+                        {stage === 1 && <TapRaceDemo />}
+                        {stage === 2 && <RPSDemo />}
+                        {stage === 3 && <TimerDemo />}
                       </div>
+
+                      {/* Elimination warning - only show if not empty */}
+                      {info.elimination && (
+                        <div className="p-6 rounded-xl bg-red-500/20 border-2 border-red-500/50 mt-6">
+                          <div className="flex items-center gap-4">
+                            <Skull className="w-10 h-10 text-red-400" />
+                            <p className="text-red-400 font-display text-2xl font-black">ELIMINATION: {info.elimination}</p>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Tip */}
                       <div className="text-center mt-8">
-                        <p className="text-2xl font-display" style={{ color }}>{info.tip}</p>
+                        <p className="text-3xl font-display font-bold" style={{ color }}>{info.tip}</p>
                       </div>
 
                       {/* Start button */}
                       <div className="flex justify-center mt-8">
-                        <button onClick={() => beginTrial(stage)} className="cyber-btn px-12 py-4 rounded-xl flex items-center gap-4 text-xl">
-                          <Play className="w-6 h-6" />
+                        <button onClick={() => beginTrial(stage)} className="cyber-btn px-16 py-6 rounded-2xl flex items-center gap-6 text-3xl font-black">
+                          <Play className="w-10 h-10" />
                           <span className="font-display">START ROUND</span>
                         </button>
                       </div>
@@ -1180,49 +1853,62 @@ const MainStage = () => {
       const color = colorMap[info.color as keyof typeof colorMap];
       
       return (
-        <div className="min-h-screen cyber-bg relative overflow-hidden flex items-center justify-center p-8">
+        <div className="min-h-screen cyber-bg relative overflow-hidden flex items-center justify-center p-10">
           <div className="grid-overlay" />
           <div className="scanline" />
           
-          <div className="max-w-4xl w-full animate-bounce-in relative z-10">
-            <div className="cyber-card rounded-3xl overflow-hidden" style={{ border: `2px solid ${color}`, boxShadow: `0 0 30px ${color}40` }}>
+          <div className="max-w-5xl w-full animate-bounce-in relative z-10">
+            <div className="cyber-card rounded-3xl overflow-hidden" style={{ border: `4px solid ${color}`, boxShadow: `0 0 50px ${color}50` }}>
               {/* Header */}
-              <div className="p-8 text-center" style={{ background: `linear-gradient(135deg, ${color}20, transparent)` }}>
-                <span className="text-8xl mb-4 block">{info.icon}</span>
-                <h1 className="text-5xl font-display font-bold text-white mb-2">{info.title}</h1>
-                <p className="text-xl font-mono" style={{ color }}>{info.objective}</p>
+              <div className="p-10 text-center" style={{ background: `linear-gradient(135deg, ${color}20, transparent)` }}>
+                <span className="text-9xl mb-6 block">{info.icon}</span>
+                <h1 className="text-6xl font-display font-black text-white mb-4 tracking-wide">{info.title}</h1>
+                <p className="text-2xl font-mono font-bold" style={{ color }}>{info.objective}</p>
               </div>
 
               {/* Rules */}
-              <div className="p-8 space-y-4">
-                <h3 className="text-xl font-display text-white mb-4">PROTOCOL RULES:</h3>
-                {info.rules.map((rule, idx) => (
-                  <div key={idx} className="flex items-center gap-4 p-4 rounded-lg bg-slate-900/50">
-                    <span className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" style={{ backgroundColor: `${color}30`, color }}>
-                      {idx + 1}
-                    </span>
-                    <p className="text-slate-300 font-mono text-lg">{rule}</p>
+              {/* Rules - with demo for all rounds */}
+              <div className="p-6">
+                <div className="flex gap-6">
+                  {/* Rules list */}
+                  <div className="space-y-3 flex-1">
+                    <h3 className="text-4xl font-display font-black text-white mb-4">PROTOCOL RULES:</h3>
+                    {info.rules.map((rule, idx) => (
+                      <div key={idx} className="flex items-center gap-4 p-4 rounded-xl bg-slate-900/50 border border-slate-700/50">
+                        <span className="w-14 h-14 rounded-full flex items-center justify-center font-black text-2xl shrink-0" style={{ backgroundColor: `${color}40`, color }}>
+                          {idx + 1}
+                        </span>
+                        <p className="text-white font-display text-2xl font-black uppercase tracking-wide">{rule}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-
-                {/* Elimination warning */}
-                <div className="p-4 rounded-lg bg-red-500/20 border border-red-500/50 mt-6">
-                  <div className="flex items-center gap-3">
-                    <Skull className="w-6 h-6 text-red-400" />
-                    <p className="text-red-400 font-display text-lg">ELIMINATION: {info.elimination}</p>
-                  </div>
+                  
+                  {/* Demo Animations */}
+                  {nextStage === 1 && <TapRaceDemo />}
+                  {nextStage === 2 && <RPSDemo />}
+                  {nextStage === 3 && <TimerDemo />}
                 </div>
+
+                {/* Elimination warning - only show if not empty */}
+                {info.elimination && (
+                  <div className="p-6 rounded-xl bg-red-500/20 border-2 border-red-500/50 mt-6">
+                    <div className="flex items-center gap-4">
+                      <Skull className="w-10 h-10 text-red-400" />
+                      <p className="text-red-400 font-display text-2xl font-black">ELIMINATION: {info.elimination}</p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Tip */}
                 <div className="text-center mt-8">
-                  <p className="text-2xl font-display" style={{ color }}>{info.tip}</p>
+                  <p className="text-3xl font-display font-bold" style={{ color }}>{info.tip}</p>
                 </div>
 
                 {/* Start button */}
                 <div className="flex justify-center mt-8">
-                  <button onClick={() => beginTrial(nextStage)} className="cyber-btn px-12 py-4 rounded-xl flex items-center gap-4 text-xl">
-                    <Play className="w-6 h-6" />
-                    <span className="font-display">START ROUND</span>
+                  <button onClick={() => beginTrial(nextStage)} className="cyber-btn px-16 py-6 rounded-2xl flex items-center gap-6 text-3xl font-black">
+                    <Play className="w-10 h-10" />
+                    <span className="font-display">BEGIN PROTOCOL</span>
                   </button>
                 </div>
               </div>
@@ -1231,6 +1917,447 @@ const MainStage = () => {
         </div>
       );
     }
+  }
+
+  // ============================================
+  // RENDER: STANDINGS REVEAL (Full Scoreboard)
+  // ============================================
+  if (phase === 'standings-reveal') {
+    const currentStage = gameSession.current_stage || 1;
+    const eliminateCount = ELIMINATIONS[currentStage] || 0;
+    const roundNumber = gameSession.round_number || 1;
+    
+    return (
+      <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center bg-black p-8">
+        {/* Deep background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-purple-950/20 to-slate-950" />
+        
+        {/* Animated grid lines */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `
+              linear-gradient(90deg, rgba(168, 85, 247, 0.1) 1px, transparent 1px),
+              linear-gradient(rgba(168, 85, 247, 0.1) 1px, transparent 1px)
+            `,
+            backgroundSize: '60px 60px'
+          }} />
+        </div>
+        
+        {/* Corner decorations */}
+        <div className="absolute top-8 left-8 w-24 h-24 border-l-2 border-t-2 border-cyan-400/40 rounded-tl-3xl" />
+        <div className="absolute top-8 right-8 w-24 h-24 border-r-2 border-t-2 border-cyan-400/40 rounded-tr-3xl" />
+        <div className="absolute bottom-8 left-8 w-24 h-24 border-l-2 border-b-2 border-cyan-400/40 rounded-bl-3xl" />
+        <div className="absolute bottom-8 right-8 w-24 h-24 border-r-2 border-b-2 border-cyan-400/40 rounded-br-3xl" />
+        
+        {/* Ambient glow */}
+        <div className="fixed inset-0 pointer-events-none">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-cyan-500/20 rounded-full blur-[150px]" />
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-purple-500/20 rounded-full blur-[150px]" />
+        </div>
+        
+        <div className="relative z-10 w-full max-w-5xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <p className="text-cyan-400/60 font-mono text-xl tracking-[0.3em] mb-2">ROUND {roundNumber}</p>
+            <h1 className="text-5xl md:text-6xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 mb-4">
+              FINAL STANDINGS
+            </h1>
+            <p className="text-slate-400 font-mono text-lg">
+              {eliminationRankings.length} CANDIDATES COMPETED
+            </p>
+          </div>
+          
+          {/* Standings Table */}
+          <div className="bg-slate-900/80 border-2 border-cyan-400/30 rounded-2xl overflow-hidden shadow-[0_0_60px_rgba(34,211,238,0.1)]">
+            {/* Table Header */}
+            <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-slate-800/60 border-b border-cyan-400/20">
+              <div className="col-span-1 text-center">
+                <span className="text-cyan-400 font-mono text-sm font-bold">RANK</span>
+              </div>
+              <div className="col-span-7">
+                <span className="text-cyan-400 font-mono text-sm font-bold">CANDIDATE</span>
+              </div>
+              <div className="col-span-4 text-right">
+                <span className="text-cyan-400 font-mono text-sm font-bold">
+                  {currentStage === 2 ? 'SCORE' : 'TIME'}
+                </span>
+              </div>
+            </div>
+            
+            {/* Player Rows */}
+            <div className="divide-y divide-slate-700/50">
+              {eliminationRankings.map((player, index) => {
+                const rank = index + 1;
+                const isEliminated = rank > eliminationRankings.length - eliminateCount;
+                const isTop3 = rank <= 3;
+                
+                // Format score based on stage type
+                let scoreDisplay = '---';
+                if (player.score !== undefined && player.score !== Infinity) {
+                  if (currentStage === 2) {
+                    scoreDisplay = `${player.score} pts`;
+                  } else {
+                    scoreDisplay = `${player.score.toFixed(2)}s`;
+                  }
+                }
+                
+                return (
+                  <div 
+                    key={player.id}
+                    className={`grid grid-cols-12 gap-4 px-6 py-4 transition-all duration-300 ${
+                      isEliminated 
+                        ? 'bg-red-950/30 border-l-4 border-red-500/50' 
+                        : isTop3 
+                        ? 'bg-yellow-950/20' 
+                        : 'hover:bg-slate-800/40'
+                    }`}
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    {/* Rank */}
+                    <div className="col-span-1 flex items-center justify-center">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-display font-black text-lg ${
+                        rank === 1 
+                          ? 'bg-yellow-500 text-yellow-900' 
+                          : rank === 2 
+                          ? 'bg-slate-300 text-slate-800' 
+                          : rank === 3 
+                          ? 'bg-amber-600 text-amber-100'
+                          : isEliminated
+                          ? 'bg-red-500/30 text-red-400'
+                          : 'bg-slate-700 text-slate-300'
+                      }`}>
+                        {rank}
+                      </div>
+                    </div>
+                    
+                    {/* Player Info */}
+                    <div className="col-span-7 flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-full overflow-hidden border-2 ${
+                        isEliminated ? 'border-red-500/50' : 'border-cyan-400/30'
+                      }`}>
+                        {player.photo_url ? (
+                          <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div 
+                            className="w-full h-full flex items-center justify-center text-xl font-display font-black"
+                            style={{ backgroundColor: player.avatar_color || '#6366f1' }}
+                          >
+                            {player.name?.charAt(0) || '?'}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p className={`text-2xl font-display font-bold ${
+                          isEliminated ? 'text-red-400' : isTop3 ? 'text-yellow-400' : 'text-white'
+                        }`}>
+                          {player.name}
+                        </p>
+                        {isEliminated && (
+                          <p className="text-red-400/70 font-mono text-xs">ELIMINATED</p>
+                        )}
+                        {rank === 1 && <p className="text-yellow-400/70 font-mono text-xs">🏆 TOP PERFORMER</p>}
+                      </div>
+                    </div>
+                    
+                    {/* Score */}
+                    <div className="col-span-4 flex items-center justify-end">
+                      <span className={`text-2xl font-mono font-bold ${
+                        isEliminated ? 'text-red-400' : isTop3 ? 'text-yellow-400' : 'text-cyan-400'
+                      }`}>
+                        {scoreDisplay}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          
+          {/* Summary */}
+          <div className="mt-8 flex items-center justify-center gap-8">
+            <div className="text-center px-8 py-4 rounded-xl bg-green-500/10 border border-green-500/30">
+              <p className="text-3xl font-display font-black text-green-400">{eliminationRankings.length - eliminateCount}</p>
+              <p className="text-green-400/70 font-mono text-sm font-bold">ADVANCING</p>
+            </div>
+            <div className="text-center px-8 py-4 rounded-xl bg-red-500/10 border border-red-500/30">
+              <p className="text-3xl font-display font-black text-red-400">{eliminateCount}</p>
+              <p className="text-red-400/70 font-mono text-sm font-bold">ELIMINATED</p>
+            </div>
+          </div>
+          
+          {/* Continue prompt */}
+          <div className="mt-10 text-center">
+            <p className="text-cyan-400/80 font-display text-2xl tracking-wider animate-pulse">
+              PROCEED TO PRIZE REVEAL
+            </p>
+            <p className="text-slate-500 font-mono text-sm mt-2">Press ENTER or → to continue</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================
+  // RENDER: PRIZE REVEAL CEREMONY
+  // ============================================
+  if (phase === 'prize-reveal') {
+    const roundNumber = gameSession.round_number || 1;
+    const eliminatedPositions = getEliminatedPositions(roundNumber);
+    const currentPosition = eliminatedPositions[prizeRevealIndex];
+    const prizeData = ROUND_PRIZES[roundNumber]?.[currentPosition];
+    
+    // Get the player for this position from eliminationRankings
+    // eliminationRankings is sorted best to worst, so eliminated players are at the end
+    const eliminateCount = ELIMINATIONS[gameSession.current_stage || 1] || 0;
+    
+    // Eliminated players are at the end of eliminationRankings (worst performers)
+    // Reverse so 10th place (worst) comes first
+    const eliminatedPlayersReversed = [...eliminationRankings.slice(-eliminateCount)].reverse();
+    const currentPlayer = eliminatedPlayersReversed[prizeRevealIndex];
+    
+    const isLastPrize = prizeRevealIndex >= eliminatedPositions.length - 1;
+
+    return (
+      <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center bg-black">
+        {/* Deep space background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-purple-950/30 to-slate-950" />
+        
+        {/* Radial spotlight effect */}
+        <div 
+          className="absolute inset-0 transition-opacity duration-1000"
+          style={{
+            background: prizeRevealed 
+              ? 'radial-gradient(ellipse at 50% 40%, rgba(251, 191, 36, 0.3) 0%, rgba(251, 191, 36, 0.1) 30%, transparent 60%)'
+              : 'radial-gradient(ellipse at 50% 40%, rgba(147, 51, 234, 0.2) 0%, rgba(147, 51, 234, 0.05) 30%, transparent 60%)',
+          }}
+        />
+        
+        {/* Animated light beams */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div 
+            className="absolute w-1 h-[200%] bg-gradient-to-b from-transparent via-yellow-400/20 to-transparent -rotate-12 animate-pulse"
+            style={{ left: '20%', top: '-50%', animationDuration: '3s' }}
+          />
+          <div 
+            className="absolute w-1 h-[200%] bg-gradient-to-b from-transparent via-cyan-400/20 to-transparent rotate-12 animate-pulse"
+            style={{ right: '20%', top: '-50%', animationDuration: '4s', animationDelay: '1s' }}
+          />
+          <div 
+            className="absolute w-0.5 h-[200%] bg-gradient-to-b from-transparent via-pink-400/15 to-transparent -rotate-6 animate-pulse"
+            style={{ left: '35%', top: '-50%', animationDuration: '5s', animationDelay: '0.5s' }}
+          />
+          <div 
+            className="absolute w-0.5 h-[200%] bg-gradient-to-b from-transparent via-purple-400/15 to-transparent rotate-6 animate-pulse"
+            style={{ right: '35%', top: '-50%', animationDuration: '4.5s', animationDelay: '1.5s' }}
+          />
+        </div>
+        
+        {/* Floating particles - more dramatic */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {Array.from({ length: 50 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute rounded-full animate-float"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                width: `${Math.random() * 6 + 2}px`,
+                height: `${Math.random() * 6 + 2}px`,
+                background: prizeRevealed 
+                  ? (i % 4 === 0 ? '#fbbf24' : i % 4 === 1 ? '#fef08a' : i % 4 === 2 ? '#f59e0b' : '#fcd34d')
+                  : (i % 3 === 0 ? '#a855f7' : i % 3 === 1 ? '#22d3ee' : '#ec4899'),
+                animationDelay: `${Math.random() * 5}s`,
+                animationDuration: `${Math.random() * 4 + 3}s`,
+                opacity: Math.random() * 0.5 + 0.3,
+                boxShadow: prizeRevealed ? '0 0 10px #fbbf24' : '0 0 8px #a855f7',
+              }}
+            />
+          ))}
+        </div>
+        
+        {/* Confetti explosion on reveal */}
+        {prizeRevealed && (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {Array.from({ length: 60 }).map((_, i) => (
+              <div
+                key={`confetti-${i}`}
+                className="absolute animate-confetti"
+                style={{
+                  left: `${40 + Math.random() * 20}%`,
+                  top: '-20px',
+                  width: `${Math.random() * 12 + 6}px`,
+                  height: `${Math.random() * 12 + 6}px`,
+                  background: ['#fbbf24', '#ef4444', '#22c55e', '#3b82f6', '#ec4899', '#a855f7'][i % 6],
+                  borderRadius: i % 2 === 0 ? '50%' : '2px',
+                  animationDelay: `${Math.random() * 0.5}s`,
+                  animationDuration: `${Math.random() * 2 + 2}s`,
+                }}
+              />
+            ))}
+          </div>
+        )}
+        
+        {/* Screen flash on reveal */}
+        {prizeRevealed && (
+          <div 
+            className="absolute inset-0 bg-yellow-400/30 pointer-events-none"
+            style={{
+              animation: 'flash 0.5s ease-out forwards',
+            }}
+          />
+        )}
+        
+        {/* Main Content */}
+        <div className="relative z-10 text-center max-w-5xl mx-auto px-8">
+          
+          {/* Rank Badge - Larger and more dramatic */}
+          <div className={`mb-6 ${prizeAnimationPhase !== 'entering' ? 'animate-prize-slide-down' : 'opacity-0'}`}>
+            <div className="relative inline-block">
+              {/* Glow behind badge */}
+              <div className="absolute inset-0 blur-2xl bg-yellow-500/40 rounded-3xl scale-110" />
+              <div className="relative px-12 py-4 bg-gradient-to-r from-amber-600/30 via-yellow-500/40 to-amber-600/30 border-3 border-yellow-400/80 rounded-2xl backdrop-blur-sm">
+                <h1 className="text-5xl md:text-6xl font-display font-black tracking-wider animate-text-shimmer">
+                  {prizeData?.title || `${currentPosition}TH PLACE`}
+                </h1>
+              </div>
+            </div>
+          </div>
+          
+          {/* Decorative line */}
+          <div className={`flex items-center justify-center gap-4 mb-8 ${prizeAnimationPhase !== 'entering' ? 'animate-fadeIn' : 'opacity-0'}`}>
+            <div className="h-0.5 w-24 bg-gradient-to-r from-transparent via-yellow-400 to-yellow-400" />
+            <span className="text-yellow-400 text-3xl">★</span>
+            <span className="text-yellow-400 font-display text-2xl font-bold tracking-[0.3em]">CONGRATULATIONS</span>
+            <span className="text-yellow-400 text-3xl">★</span>
+            <div className="h-0.5 w-24 bg-gradient-to-l from-transparent via-yellow-400 to-yellow-400" />
+          </div>
+          
+          {/* Player Photo & Name - Larger with dramatic effects */}
+          {currentPlayer && (
+            <div className={`mb-10 ${prizeAnimationPhase === 'name' || prizeAnimationPhase === 'box' || prizeAnimationPhase === 'revealed' ? 'animate-prize-zoom-in' : 'opacity-0'}`}>
+              {/* Photo with spotlight ring */}
+              <div className="relative inline-block mb-8">
+                {/* Animated rings */}
+                <div className="absolute inset-0 -m-4 rounded-full border-2 border-yellow-400/30 animate-ping" style={{ animationDuration: '2s' }} />
+                <div className="absolute inset-0 -m-8 rounded-full border border-yellow-400/20 animate-ping" style={{ animationDuration: '3s' }} />
+                
+                {/* Glow */}
+                <div className="absolute inset-0 -m-2 rounded-full bg-yellow-400/30 blur-xl" />
+                
+                {/* Photo */}
+                <div className="relative w-48 h-48 rounded-full overflow-hidden border-4 border-yellow-400 shadow-[0_0_40px_rgba(251,191,36,0.5)]">
+                  {currentPlayer.photo_url ? (
+                    <img 
+                      src={currentPlayer.photo_url} 
+                      alt={currentPlayer.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div 
+                      className="w-full h-full flex items-center justify-center text-7xl font-display font-black"
+                      style={{ backgroundColor: currentPlayer.avatar_color || '#6366f1' }}
+                    >
+                      {currentPlayer.name.charAt(0)}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Name - smaller than prize */}
+              <div className="relative">
+                <h2 className="text-4xl md:text-5xl font-display font-black text-white tracking-wide drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                  {currentPlayer.name}
+                </h2>
+              </div>
+            </div>
+          )}
+          
+          {/* Prize Box - More dramatic */}
+          <div className={`mb-10 ${prizeAnimationPhase === 'box' || prizeAnimationPhase === 'revealed' ? 'opacity-100' : 'opacity-0'} transition-opacity duration-500`}>
+            {prizeAnimationPhase === 'box' && !prizeRevealed ? (
+              // Mystery Box - Larger, more suspenseful
+              <div className="relative inline-block">
+                {/* Pulsing glow behind box */}
+                <div className="absolute inset-0 -m-4 bg-purple-500/30 blur-2xl rounded-3xl animate-pulse" />
+                
+                <div className="relative px-20 py-10 bg-gradient-to-br from-purple-900/60 via-pink-900/40 to-purple-900/60 border-4 border-dashed border-purple-400/80 rounded-3xl animate-prize-box-shake backdrop-blur-sm">
+                  <p className="text-8xl mb-4 animate-bounce" style={{ animationDuration: '1s' }}>🎁</p>
+                  <p className="text-purple-200 font-display text-3xl font-black tracking-wider">
+                    MYSTERY PRIZE
+                  </p>
+                  <p className="text-purple-400/60 font-mono text-sm mt-2 animate-pulse">
+                    AWAITING REVEAL...
+                  </p>
+                </div>
+              </div>
+            ) : prizeRevealed || prizeAnimationPhase === 'revealed' ? (
+              // Revealed Prize - Explosive reveal
+              <div className="relative inline-block animate-prize-reveal">
+                {/* Golden glow explosion */}
+                <div className="absolute inset-0 -m-12 bg-yellow-400/50 blur-3xl rounded-3xl animate-pulse" />
+                
+                <div className="relative w-full max-w-5xl mx-auto px-10 py-8 bg-gradient-to-br from-yellow-600/50 via-amber-500/60 to-yellow-600/50 border-4 border-yellow-400 rounded-3xl shadow-[0_0_100px_rgba(251,191,36,0.7)] backdrop-blur-sm">
+                  {/* Prize icon with glow */}
+                  <div className="flex justify-center mb-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 -m-4 bg-yellow-400/60 blur-2xl rounded-full animate-pulse" />
+                      <p className="relative text-7xl animate-bounce" style={{ animationDuration: '0.5s' }}>🏆</p>
+                    </div>
+                  </div>
+                  
+                  {/* Prize name - ULTIMATE SIZE */}
+                  <p className="text-yellow-100 font-display text-5xl md:text-6xl lg:text-7xl font-black tracking-wide drop-shadow-[0_0_40px_rgba(251,191,36,0.9)] text-center leading-tight">
+                    {prizeData?.prize || 'PRIZE'}
+                  </p>
+                  
+                  {/* Description */}
+                  <p className="text-yellow-300/90 font-mono text-2xl mt-4 tracking-widest text-center">
+                    {prizeData?.description || 'Congratulations!'}
+                  </p>
+                  
+                  {/* Decorative lines */}
+                  <div className="flex items-center justify-center gap-4 mt-5">
+                    <div className="w-28 h-1 bg-gradient-to-r from-transparent to-yellow-400 rounded-full" />
+                    <span className="text-yellow-400 text-3xl">✦</span>
+                    <div className="w-28 h-1 bg-gradient-to-l from-transparent to-yellow-400 rounded-full" />
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+          
+          {/* Status text - More subtle */}
+          {prizeAnimationPhase === 'box' && (
+            <div className="animate-fadeIn text-center">
+              <p className={`font-display text-2xl font-bold tracking-[0.2em] transition-colors duration-500 ${
+                prizeRevealed ? 'text-yellow-400' : 'text-cyan-400/80'
+              }`}>
+                {!prizeRevealed ? 'REVEAL THE PRIZE' : isLastPrize ? (roundNumber === 3 ? 'CROWN THE CHAMPIONS' : 'VIEW STANDINGS') : 'NEXT WINNER'}
+              </p>
+              
+              <div className="flex items-center justify-center gap-2 mt-4">
+                {eliminatedPositions.map((_, idx) => (
+                  <div
+                    key={idx}
+                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                      idx < prizeRevealIndex ? 'bg-yellow-400' : 
+                      idx === prizeRevealIndex ? (prizeRevealed ? 'bg-yellow-400 scale-125' : 'bg-purple-400 animate-pulse') : 
+                      'bg-slate-600'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Corner decorations */}
+        <div className="absolute top-8 left-8 w-24 h-24 border-l-2 border-t-2 border-yellow-400/30 rounded-tl-3xl" />
+        <div className="absolute top-8 right-8 w-24 h-24 border-r-2 border-t-2 border-yellow-400/30 rounded-tr-3xl" />
+        <div className="absolute bottom-8 left-8 w-24 h-24 border-l-2 border-b-2 border-yellow-400/30 rounded-bl-3xl" />
+        <div className="absolute bottom-8 right-8 w-24 h-24 border-r-2 border-b-2 border-yellow-400/30 rounded-br-3xl" />
+      </div>
+    );
   }
 
   // ============================================
@@ -1243,16 +2370,16 @@ const MainStage = () => {
     const survivorCount = totalPlayers - eliminateCount;
     
     return (
-      <div className="min-h-screen cyber-bg relative overflow-hidden flex flex-col p-6">
+      <div className="min-h-screen cyber-bg relative overflow-hidden flex flex-col p-8">
         <div className="grid-overlay" />
         <div className="scanline" />
         
         {/* Header */}
-        <div className="text-center py-6 relative z-10">
-          <h1 className="text-5xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-purple-500 mb-2">
+        <div className="text-center py-8 relative z-10">
+          <h1 className="text-7xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-purple-500 mb-4 tracking-wider">
             ROUND 0{currentStage} COMPLETE
           </h1>
-          <p className="text-slate-400 font-mono text-lg tracking-widest">
+          <p className="text-slate-300 font-mono text-2xl tracking-widest font-bold">
             {revealedRank >= totalPlayers ? 'RESULTS CALCULATED' : 'CALCULATING RESULTS...'}
           </p>
         </div>
@@ -1260,13 +2387,13 @@ const MainStage = () => {
         {/* Grid layout for all players - fits on one screen */}
         <div className="flex-1 flex flex-col justify-center relative z-10">
           {/* Survivors */}
-          <div className="mb-6">
-            <h2 className="text-center text-emerald-400 font-display text-xl mb-4 flex items-center justify-center gap-2">
-              <span className="w-8 h-0.5 bg-emerald-500/50" />
+          <div className="mb-10">
+            <h2 className="text-center text-emerald-400 font-display text-4xl font-black mb-6 flex items-center justify-center gap-4 tracking-wider">
+              <span className="w-16 h-1 bg-emerald-500/50" />
               SURVIVORS ({survivorCount})
-              <span className="w-8 h-0.5 bg-emerald-500/50" />
+              <span className="w-16 h-1 bg-emerald-500/50" />
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 max-w-6xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 max-w-7xl mx-auto">
               {eliminationRankings.slice(0, survivorCount).map((player, idx) => {
                 const rank = idx + 1;
                 const isRevealed = revealedRank >= (idx + 1);
@@ -1275,24 +2402,24 @@ const MainStage = () => {
                 return (
                   <div
                     key={player.id}
-                    className={`p-3 rounded-xl text-center transition-all duration-500 ${
+                    className={`p-5 rounded-2xl text-center transition-all duration-500 ${
                       isRevealed 
                         ? isTop
-                          ? 'bg-yellow-500/20 border-2 border-yellow-500/50 opacity-100 scale-100'
-                          : 'bg-emerald-500/10 border border-emerald-500/30 opacity-100 scale-100'
+                          ? 'bg-yellow-500/20 border-4 border-yellow-500/60 opacity-100 scale-100'
+                          : 'bg-emerald-500/10 border-2 border-emerald-500/40 opacity-100 scale-100'
                         : 'opacity-0 scale-90'
                     }`}
                     style={{ transitionDelay: `${idx * 80}ms` }}
                   >
-                    <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center font-bold text-lg font-display mb-2 ${
+                    <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center font-black text-3xl font-display mb-3 ${
                       isTop ? 'bg-yellow-500/30 text-yellow-400' : 'bg-emerald-500/20 text-emerald-400'
                     }`}>
-                      {isTop ? <Crown className="w-6 h-6" /> : `#${rank}`}
+                      {isTop ? <Crown className="w-10 h-10" /> : `#${rank}`}
                     </div>
-                    <p className={`font-display text-sm truncate ${isTop ? 'text-yellow-400' : 'text-white'}`}>
+                    <p className={`font-display text-xl font-bold truncate ${isTop ? 'text-yellow-400' : 'text-white'}`}>
                       {player.name}
                     </p>
-                    <p className="text-slate-500 font-mono text-xs mt-1">
+                    <p className="text-slate-400 font-mono text-lg font-bold mt-2">
                       {currentStage === 2 ? `${player.score} PTS` : `${(player.score || 0).toFixed(2)}s`}
                     </p>
                   </div>
@@ -1303,12 +2430,12 @@ const MainStage = () => {
           
           {/* Eliminated */}
           <div>
-            <h2 className="text-center text-red-400 font-display text-xl mb-4 flex items-center justify-center gap-2">
-              <span className="w-8 h-0.5 bg-red-500/50" />
-              <Skull className="w-5 h-5" /> ELIMINATED ({eliminateCount})
-              <span className="w-8 h-0.5 bg-red-500/50" />
+            <h2 className="text-center text-red-400 font-display text-4xl font-black mb-6 flex items-center justify-center gap-4 tracking-wider">
+              <span className="w-16 h-1 bg-red-500/50" />
+              <Skull className="w-10 h-10" /> ELIMINATED ({eliminateCount})
+              <span className="w-16 h-1 bg-red-500/50" />
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
               {eliminationRankings.slice(-eliminateCount).map((player, idx) => {
                 const rank = survivorCount + idx + 1;
                 const isRevealed = revealedRank >= (survivorCount + idx + 1);
@@ -1316,20 +2443,20 @@ const MainStage = () => {
                 return (
                   <div
                     key={player.id}
-                    className={`p-3 rounded-xl text-center transition-all duration-500 ${
+                    className={`p-5 rounded-2xl text-center transition-all duration-500 ${
                       isRevealed 
-                        ? 'bg-red-500/20 border-2 border-red-500/50 opacity-100 scale-100'
+                        ? 'bg-red-500/20 border-4 border-red-500/60 opacity-100 scale-100'
                         : 'opacity-0 scale-90'
                     }`}
                     style={{ transitionDelay: `${(survivorCount + idx) * 80}ms` }}
                   >
-                    <div className="w-12 h-12 mx-auto rounded-full flex items-center justify-center font-bold text-lg font-display mb-2 bg-red-500/30 text-red-400">
+                    <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center font-black text-3xl font-display mb-3 bg-red-500/30 text-red-400">
                       #{rank}
                     </div>
-                    <p className="font-display text-sm truncate text-red-400">
+                    <p className="font-display text-xl font-bold truncate text-red-400">
                       {player.name}
                     </p>
-                    <p className="text-red-500/70 font-mono text-xs mt-1">
+                    <p className="text-red-400/80 font-mono text-lg font-bold mt-2">
                       {currentStage === 2 ? `${player.score} PTS` : `${(player.score || 0).toFixed(2)}s`}
                     </p>
                   </div>
@@ -1341,9 +2468,9 @@ const MainStage = () => {
         
         {/* Summary & Continue Button */}
         {revealedRank >= totalPlayers && (
-          <div className="py-6 text-center relative z-10 animate-fadeIn">
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-purple-500/30 inline-block mb-4">
-              <p className="text-purple-400 font-display text-xl">
+          <div className="py-8 text-center relative z-10 animate-fadeIn">
+            <div className="p-6 rounded-2xl bg-slate-900/80 border-2 border-purple-500/40 inline-block mb-6">
+              <p className="text-purple-400 font-display text-3xl font-black tracking-wide">
                 {eliminateCount} ELIMINATED • {survivorCount} SURVIVING
               </p>
             </div>
@@ -1351,16 +2478,16 @@ const MainStage = () => {
             <div>
               <button 
                 onClick={continueFromElimination}
-                className="cyber-btn px-12 py-4 rounded-xl flex items-center gap-4 mx-auto text-xl"
+                className="cyber-btn px-16 py-6 rounded-2xl flex items-center gap-6 mx-auto text-3xl font-black"
               >
                 {currentStage < 3 ? (
                   <>
                     <span className="font-display">PROCEED TO ROUND 0{currentStage + 1}</span>
-                    <ChevronRight className="w-6 h-6" />
+                    <ChevronRight className="w-10 h-10" />
                   </>
                 ) : (
                   <>
-                    <Crown className="w-6 h-6" />
+                    <Crown className="w-10 h-10" />
                     <span className="font-display">REVEAL CHAMPION</span>
                   </>
                 )}
@@ -1373,110 +2500,673 @@ const MainStage = () => {
   }
 
   // ============================================
-  // RENDER: CHAMPION REVEAL
+  // RENDER: CHAMPION REVEAL (Staged: 3rd → Mystery → 2nd → 1st)
   // ============================================
   const CHAMPION_STEPS = [
     { text: 'THE PROTOCOL IS COMPLETE', duration: 2500 },
     { text: 'ALL ROUNDS HAVE BEEN CONQUERED', duration: 2500 },
-    { text: 'ONE HUMAN HAS PROVEN THEIR WORTH', duration: 3000 },
-    { text: 'I PRESENT TO YOU...', duration: 2500 },
-    { text: 'THE HUMAN CHAMPION', duration: 0 }, // Final reveal
+    { text: 'THREE FINALISTS STAND BEFORE YOU', duration: 2500 },
+    { text: 'WHO WILL CLAIM GLORY...', duration: 2500 },
+    { text: 'REVEAL', duration: 0 }, // Triggers third place stage
   ];
   const isFinaleReveal = championRevealStep >= CHAMPION_STEPS.length - 1;
   
+  // Get 1st, 2nd, 3rd place from rankings
+  const firstPlace = eliminationRankings[0];
+  const secondPlace = eliminationRankings[1];
+  const thirdPlace = eliminationRankings[2];
+  const firstPrize = ROUND_PRIZES[3]?.[1];
+  const secondPrize = ROUND_PRIZES[3]?.[2];
+  const thirdPrize = ROUND_PRIZES[3]?.[3];
+  
   if (phase === 'champion') {
     return (
-      <div className="min-h-screen cyber-bg relative overflow-hidden flex items-center justify-center">
-        <div className="grid-overlay" />
-        <div className="scanline" />
+      <div className="min-h-screen relative overflow-hidden flex items-center justify-center bg-black">
+        {/* Deep background - intensifies with reveals */}
+        <div className={`absolute inset-0 transition-all duration-1000 ${
+          championRevealStage === 'first' 
+            ? 'bg-gradient-to-b from-yellow-950/40 via-amber-950/30 to-slate-950'
+            : championRevealStage === 'second'
+            ? 'bg-gradient-to-b from-slate-800/40 via-slate-900/30 to-slate-950'
+            : championRevealStage === 'third'
+            ? 'bg-gradient-to-b from-amber-900/40 via-amber-950/30 to-slate-950'
+            : 'bg-gradient-to-b from-purple-950/40 via-slate-950 to-slate-950'
+        }`} />
         
-        {/* Confetti/particles effect */}
-        {isFinaleReveal && (
+        {/* Animated spotlight beams - intense for all reveals */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Golden rays for 1st place */}
+          {championRevealStage === 'first' && (
+            <>
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div 
+                  key={i}
+                  className="absolute w-2 h-[200%] bg-gradient-to-b from-transparent via-yellow-400/40 to-transparent animate-pulse origin-center"
+                  style={{ 
+                    left: '50%', 
+                    top: '-50%',
+                    transform: `rotate(${i * 30}deg)`,
+                    animationDuration: '1s',
+                    animationDelay: `${i * 0.1}s`
+                  }}
+                />
+              ))}
+            </>
+          )}
+          {/* Silver rays for 2nd place */}
+          {championRevealStage === 'second' && (
+            <>
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div 
+                  key={i}
+                  className="absolute w-2 h-[200%] bg-gradient-to-b from-transparent via-slate-300/40 to-transparent animate-pulse origin-center"
+                  style={{ 
+                    left: '50%', 
+                    top: '-50%',
+                    transform: `rotate(${i * 30}deg)`,
+                    animationDuration: '1s',
+                    animationDelay: `${i * 0.1}s`
+                  }}
+                />
+              ))}
+            </>
+          )}
+          {/* Bronze rays for 3rd place */}
+          {championRevealStage === 'third' && (
+            <>
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div 
+                  key={i}
+                  className="absolute w-2 h-[200%] bg-gradient-to-b from-transparent via-amber-500/40 to-transparent animate-pulse origin-center"
+                  style={{ 
+                    left: '50%', 
+                    top: '-50%',
+                    transform: `rotate(${i * 30}deg)`,
+                    animationDuration: '1s',
+                    animationDelay: `${i * 0.1}s`
+                  }}
+                />
+              ))}
+            </>
+          )}
+          {/* Side beams for all stages */}
+          {championRevealStage !== 'pending' && (
+            <>
+              <div 
+                className={`absolute w-2 h-[200%] bg-gradient-to-b from-transparent to-transparent -rotate-12 animate-pulse ${
+                  championRevealStage === 'first' ? 'via-yellow-400/20' :
+                  championRevealStage === 'second' ? 'via-slate-300/20' : 'via-amber-500/20'
+                }`}
+                style={{ left: '30%', top: '-50%', animationDuration: '2s' }}
+              />
+              <div 
+                className={`absolute w-2 h-[200%] bg-gradient-to-b from-transparent to-transparent rotate-12 animate-pulse ${
+                  championRevealStage === 'first' ? 'via-yellow-400/20' :
+                  championRevealStage === 'second' ? 'via-slate-300/20' : 'via-amber-500/20'
+                }`}
+                style={{ right: '30%', top: '-50%', animationDuration: '2.5s', animationDelay: '0.5s' }}
+              />
+            </>
+          )}
+        </div>
+        
+        {/* Screen flash on reveals */}
+        {championRevealStage === 'first' && (
+          <div 
+            className="absolute inset-0 bg-yellow-400/50 pointer-events-none z-30"
+            style={{ animation: 'flash 0.8s ease-out forwards' }}
+          />
+        )}
+        {championRevealStage === 'second' && (
+          <div 
+            className="absolute inset-0 bg-slate-300/40 pointer-events-none z-30"
+            style={{ animation: 'flash 0.8s ease-out forwards' }}
+          />
+        )}
+        {championRevealStage === 'third' && (
+          <div 
+            className="absolute inset-0 bg-amber-500/40 pointer-events-none z-30"
+            style={{ animation: 'flash 0.8s ease-out forwards' }}
+          />
+        )}
+        
+        {/* MASSIVE Confetti explosion for 1st place */}
+        {championRevealStage === 'first' && (
           <div className="fixed inset-0 pointer-events-none z-20">
-            {Array.from({ length: 50 }).map((_, i) => (
+            {Array.from({ length: 150 }).map((_, i) => (
               <div
                 key={i}
-                className="absolute w-3 h-3 animate-confetti"
+                className="absolute animate-confetti"
                 style={{
                   left: `${Math.random() * 100}%`,
                   top: '-20px',
-                  background: ['#ffd700', '#ff6b6b', '#4ecdc4', '#a855f7', '#ec4899'][Math.floor(Math.random() * 5)],
-                  animationDelay: `${Math.random() * 3}s`,
-                  animationDuration: `${3 + Math.random() * 2}s`,
+                  width: `${Math.random() * 16 + 8}px`,
+                  height: `${Math.random() * 16 + 8}px`,
+                  background: ['#ffd700', '#ffed4a', '#fbbf24', '#f59e0b', '#d97706', '#ffffff'][i % 6],
+                  borderRadius: i % 3 === 0 ? '50%' : i % 3 === 1 ? '2px' : '0',
+                  animationDelay: `${Math.random() * 1}s`,
+                  animationDuration: `${2 + Math.random() * 2}s`,
                 }}
               />
             ))}
           </div>
         )}
         
-        {/* Ambient celebration glow */}
+        {/* MASSIVE Silver confetti for 2nd place */}
+        {championRevealStage === 'second' && (
+          <div className="fixed inset-0 pointer-events-none z-20">
+            {Array.from({ length: 120 }).map((_, i) => (
+              <div
+                key={i}
+                className="absolute animate-confetti"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: '-20px',
+                  width: `${Math.random() * 14 + 6}px`,
+                  height: `${Math.random() * 14 + 6}px`,
+                  background: ['#c0c0c0', '#d1d5db', '#9ca3af', '#e5e7eb', '#f3f4f6', '#ffffff'][i % 6],
+                  borderRadius: i % 3 === 0 ? '50%' : i % 3 === 1 ? '2px' : '0',
+                  animationDelay: `${Math.random() * 1}s`,
+                  animationDuration: `${2 + Math.random() * 2}s`,
+                }}
+              />
+            ))}
+          </div>
+        )}
+        
+        {/* MASSIVE Bronze confetti for 3rd place */}
+        {championRevealStage === 'third' && (
+          <div className="fixed inset-0 pointer-events-none z-20">
+            {Array.from({ length: 100 }).map((_, i) => (
+              <div
+                key={i}
+                className="absolute animate-confetti"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: '-20px',
+                  width: `${Math.random() * 12 + 5}px`,
+                  height: `${Math.random() * 12 + 5}px`,
+                  background: ['#cd7f32', '#b87333', '#d97706', '#f59e0b', '#ea580c', '#fbbf24'][i % 6],
+                  borderRadius: i % 3 === 0 ? '50%' : i % 3 === 1 ? '2px' : '0',
+                  animationDelay: `${Math.random() * 1}s`,
+                  animationDuration: `${2 + Math.random() * 2}s`,
+                }}
+              />
+            ))}
+          </div>
+        )}
+        
+        {/* Ambient glow - intensifies with stages */}
         <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-yellow-500/20 rounded-full blur-[150px] animate-pulse" />
-          <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-pink-500/20 rounded-full blur-[150px] animate-pulse" style={{ animationDelay: '1s' }} />
+          {championRevealStage === 'first' && (
+            <div className="absolute inset-0 bg-yellow-500/20 animate-pulse" style={{ animationDuration: '0.5s' }} />
+          )}
+          {championRevealStage === 'second' && (
+            <div className="absolute inset-0 bg-slate-300/15 animate-pulse" style={{ animationDuration: '0.6s' }} />
+          )}
+          {championRevealStage === 'third' && (
+            <div className="absolute inset-0 bg-amber-500/15 animate-pulse" style={{ animationDuration: '0.7s' }} />
+          )}
+          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full blur-[200px] transition-all duration-1000 ${
+            championRevealStage === 'first' 
+              ? 'w-[1000px] h-[1000px] bg-yellow-500/50'
+              : championRevealStage === 'second'
+              ? 'w-[900px] h-[900px] bg-slate-300/40'
+              : championRevealStage === 'third'
+              ? 'w-[800px] h-[800px] bg-amber-500/40'
+              : championRevealStage === 'pending'
+              ? 'w-[450px] h-[450px] bg-purple-500/30 animate-pulse'
+              : 'w-[400px] h-[400px] bg-purple-500/20'
+          }`} />
         </div>
         
-        <div className="text-center relative z-10 max-w-4xl mx-auto px-8">
+        <div className="text-center relative z-10 max-w-7xl mx-auto px-10 w-full">
           {!isFinaleReveal ? (
             /* Build-up slides */
             <div className="animate-fadeIn" key={championRevealStep}>
-              <p className="text-4xl md:text-6xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-500">
+              <p className="text-6xl md:text-8xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-500">
                 <TypewriterText text={CHAMPION_STEPS[championRevealStep].text} charDelay={50} />
               </p>
             </div>
           ) : (
-            /* Final champion reveal */
-            <div className="animate-bounce-in">
-              {/* Crown animation */}
-              <div className="mb-8">
-                <div className="w-40 h-40 mx-auto rounded-full bg-gradient-to-br from-yellow-400 via-yellow-500 to-orange-500 flex items-center justify-center animate-pulse-glow" style={{ boxShadow: '0 0 60px rgba(234, 179, 8, 0.5), 0 0 120px rgba(234, 179, 8, 0.3)' }}>
-                  <Crown className="w-20 h-20 text-white" />
+            /* Staged reveal */
+            <div>
+              {/* PENDING - Show REVEAL text, waiting for admin */}
+              {championRevealStage === 'pending' && (
+                <div className="animate-fadeIn">
+                  <p className="text-7xl md:text-9xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-yellow-400 animate-pulse">
+                    REVEAL
+                  </p>
+                  <p className="text-cyan-400 font-display text-2xl mt-12 tracking-wider animate-pulse">
+                    Press ENTER to reveal 3RD PLACE
+                  </p>
                 </div>
-              </div>
+              )}
               
-              {/* Title */}
-              <h1 className="text-3xl font-display text-slate-400 mb-4 tracking-widest">THE HUMAN CHAMPION</h1>
-              
-              {/* Champion name */}
-              <div className="py-8">
-                <p className="text-7xl md:text-9xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-400" style={{ textShadow: '0 0 40px rgba(234, 179, 8, 0.5)' }}>
-                  {champion?.name || 'CHAMPION'}
-                </p>
-              </div>
-              
-              {/* Subtitle */}
-              <p className="text-xl text-slate-400 font-mono mt-4 max-w-2xl mx-auto">
-                "YOU HAVE PROVEN YOUR WORTH. YOU ARE THE PINNACLE OF HUMAN POTENTIAL."
-              </p>
-              <p className="text-pink-400 font-mono text-sm mt-2">— GENESIS AI</p>
-              
-              {/* Stats */}
-              <div className="mt-12 flex items-center justify-center gap-8">
-                <div className="text-center px-6 py-4 rounded-xl bg-slate-900/50 border border-yellow-500/30">
-                  <p className="text-4xl font-display font-bold text-yellow-400">3</p>
-                  <p className="text-slate-500 font-mono text-sm">ROUNDS CONQUERED</p>
+              {/* THIRD PLACE REVEAL - ULTRA GLOWING BRONZE */}
+              {championRevealStage === 'third' && (
+                <div className="animate-bounce-in w-full">
+                  <h1 className="text-4xl md:text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 mb-8 tracking-wider">
+                    THE BRONZE CHAMPION
+                  </h1>
+                  
+                  <div className="flex flex-col items-center w-full">
+                    {/* 3rd Place - ULTRA GLOWING EFFECT */}
+                    <div className="text-center w-full">
+                      <div className="relative inline-block mb-6">
+                        {/* Massive bronze explosion effect - SAME AS 1ST PLACE */}
+                        <div className="absolute inset-0 -m-16 rounded-full bg-amber-500/50 blur-3xl animate-pulse" style={{ animationDuration: '0.5s' }} />
+                        <div className="absolute inset-0 -m-10 rounded-full bg-amber-600/40 blur-2xl animate-pulse" style={{ animationDuration: '0.7s' }} />
+                        <div className="absolute inset-0 -m-6 rounded-full border-4 border-amber-500/60 animate-ping" style={{ animationDuration: '1s' }} />
+                        <div className="absolute inset-0 -m-10 rounded-full border-2 border-amber-500/40 animate-ping" style={{ animationDuration: '1.5s' }} />
+                        <div className="absolute inset-0 -m-14 rounded-full border border-amber-500/20 animate-ping" style={{ animationDuration: '2s' }} />
+                        
+                        <div className="relative w-52 h-52 rounded-full overflow-hidden border-8 border-amber-500 shadow-[0_0_100px_rgba(245,158,11,0.8)]">
+                          {thirdPlace?.photo_url ? (
+                            <img src={thirdPlace.photo_url} alt={thirdPlace.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div 
+                              className="w-full h-full flex items-center justify-center text-7xl font-display font-black"
+                              style={{ backgroundColor: thirdPlace?.avatar_color || '#6366f1' }}
+                            >
+                              {thirdPlace?.name?.charAt(0) || '?'}
+                            </div>
+                          )}
+                        </div>
+                        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-10 py-3 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.6)]">
+                          <span className="text-white font-display font-black text-2xl">3RD</span>
+                        </div>
+                      </div>
+                      
+                      <h2 className="text-5xl md:text-6xl font-display font-black text-white mb-6 drop-shadow-[0_0_30px_rgba(245,158,11,0.5)]">
+                        {thirdPlace?.name || 'BRONZE CHAMPION'}
+                      </h2>
+                      
+                      {/* ULTRA GLOWING Prize Display - MAXIMUM IMPACT */}
+                      <div className="relative w-full max-w-5xl mx-auto px-4">
+                        <div className="absolute inset-0 -m-10 bg-amber-500/50 blur-3xl rounded-3xl animate-pulse" />
+                        <div className="relative w-full px-10 py-8 bg-gradient-to-br from-amber-700/60 via-amber-600/70 to-amber-700/60 border-4 border-amber-400 rounded-3xl shadow-[0_0_100px_rgba(245,158,11,0.7)]">
+                          <div className="flex justify-center mb-4">
+                            <div className="relative">
+                              <div className="absolute inset-0 -m-4 bg-amber-400/60 blur-2xl rounded-full animate-pulse" />
+                              <span className="relative text-7xl animate-bounce" style={{ animationDuration: '0.6s' }}>🥉</span>
+                            </div>
+                          </div>
+                          <p className="text-amber-100 font-display text-5xl md:text-6xl lg:text-7xl font-black text-center leading-tight drop-shadow-[0_0_40px_rgba(245,158,11,0.9)]">
+                            {thirdPrize?.prize || 'Travel Voucher to Maldives'}
+                          </p>
+                          <p className="text-amber-300/90 font-mono text-2xl mt-4 text-center tracking-widest">
+                            {thirdPrize?.description || 'Package for 2 Pax'}
+                          </p>
+                          <div className="flex items-center justify-center gap-4 mt-5">
+                            <div className="w-24 h-1 bg-gradient-to-r from-transparent to-amber-400 rounded-full" />
+                            <span className="text-amber-400 text-4xl">🏆</span>
+                            <div className="w-24 h-1 bg-gradient-to-l from-transparent to-amber-400 rounded-full" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
                 </div>
-                <div className="text-center px-6 py-4 rounded-xl bg-slate-900/50 border border-pink-500/30">
-                  <p className="text-4xl font-display font-bold text-pink-400">10</p>
-                  <p className="text-slate-500 font-mono text-sm">COMPETITORS DEFEATED</p>
-                </div>
-                <div className="text-center px-6 py-4 rounded-xl bg-slate-900/50 border border-purple-500/30">
-                  <p className="text-4xl font-display font-bold text-purple-400">1</p>
-                  <p className="text-slate-500 font-mono text-sm">CHAMPION CROWNED</p>
-                </div>
-              </div>
+              )}
               
-              {/* Final message */}
-              <div className="mt-12 p-6 rounded-xl bg-gradient-to-r from-yellow-500/10 via-pink-500/10 to-purple-500/10 border border-yellow-500/30">
-                <p className="text-2xl font-display text-white">
-                  CONGRATULATIONS, <span className="text-yellow-400">{champion?.name || 'CHAMPION'}</span>
-                </p>
-                <p className="text-slate-400 font-mono mt-2">
-                  THE PROTOCOL IS COMPLETE. GENESIS AI ACKNOWLEDGES YOUR SUPREMACY.
-                </p>
-              </div>
+              {/* SECOND PLACE REVEALED - ULTRA GLOWING SILVER */}
+              {championRevealStage === 'second' && (
+                <div className="animate-bounce-in w-full">
+                  <h1 className="text-4xl md:text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-200 via-slate-300 to-slate-400 mb-8 tracking-wider">
+                    THE SILVER CHAMPION
+                  </h1>
+                  
+                  <div className="flex flex-col items-center w-full">
+                    {/* 2nd Place - ULTRA GLOWING EFFECT */}
+                    <div className="text-center w-full">
+                      <div className="relative inline-block mb-6">
+                        {/* Massive silver explosion effect - SAME AS 1ST PLACE */}
+                        <div className="absolute inset-0 -m-16 rounded-full bg-slate-300/50 blur-3xl animate-pulse" style={{ animationDuration: '0.5s' }} />
+                        <div className="absolute inset-0 -m-10 rounded-full bg-slate-400/40 blur-2xl animate-pulse" style={{ animationDuration: '0.7s' }} />
+                        <div className="absolute inset-0 -m-6 rounded-full border-4 border-slate-300/60 animate-ping" style={{ animationDuration: '1s' }} />
+                        <div className="absolute inset-0 -m-10 rounded-full border-2 border-slate-300/40 animate-ping" style={{ animationDuration: '1.5s' }} />
+                        <div className="absolute inset-0 -m-14 rounded-full border border-slate-300/20 animate-ping" style={{ animationDuration: '2s' }} />
+                        
+                        <div className="relative w-52 h-52 rounded-full overflow-hidden border-8 border-slate-300 shadow-[0_0_100px_rgba(192,192,192,0.8)]">
+                          {secondPlace?.photo_url ? (
+                            <img src={secondPlace.photo_url} alt={secondPlace.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div 
+                              className="w-full h-full flex items-center justify-center text-7xl font-display font-black"
+                              style={{ backgroundColor: secondPlace?.avatar_color || '#6366f1' }}
+                            >
+                              {secondPlace?.name?.charAt(0) || '?'}
+                            </div>
+                          )}
+                        </div>
+                        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-10 py-3 bg-gradient-to-r from-slate-200 to-slate-400 rounded-full shadow-[0_0_20px_rgba(192,192,192,0.6)]">
+                          <span className="text-slate-800 font-display font-black text-2xl">2ND</span>
+                        </div>
+                      </div>
+                      
+                      <h2 className="text-5xl md:text-6xl font-display font-black text-white mb-6 drop-shadow-[0_0_30px_rgba(192,192,192,0.5)]">
+                        {secondPlace?.name || 'SILVER CHAMPION'}
+                      </h2>
+                      
+                      {/* ULTRA GLOWING Prize Display - MAXIMUM IMPACT */}
+                      <div className="relative w-full max-w-5xl mx-auto px-4">
+                        <div className="absolute inset-0 -m-10 bg-slate-300/50 blur-3xl rounded-3xl animate-pulse" />
+                        <div className="relative w-full px-10 py-8 bg-gradient-to-br from-slate-600/60 via-slate-500/70 to-slate-600/60 border-4 border-slate-300 rounded-3xl shadow-[0_0_100px_rgba(192,192,192,0.7)]">
+                          <div className="flex justify-center mb-4">
+                            <div className="relative">
+                              <div className="absolute inset-0 -m-4 bg-slate-300/60 blur-2xl rounded-full animate-pulse" />
+                              <span className="relative text-7xl animate-bounce" style={{ animationDuration: '0.6s' }}>🥈</span>
+                            </div>
+                          </div>
+                          <p className="text-slate-100 font-display text-5xl md:text-6xl lg:text-7xl font-black text-center leading-tight drop-shadow-[0_0_40px_rgba(192,192,192,0.9)]">
+                            {secondPrize?.prize || 'Travel Voucher to Japan'}
+                          </p>
+                          <p className="text-slate-300/90 font-mono text-2xl mt-4 text-center tracking-widest">
+                            {secondPrize?.description || 'Package for 2 Pax'}
+                          </p>
+                          <div className="flex items-center justify-center gap-4 mt-5">
+                            <div className="w-24 h-1 bg-gradient-to-r from-transparent to-slate-300 rounded-full" />
+                            <span className="text-slate-300 text-4xl">🏆</span>
+                            <div className="w-24 h-1 bg-gradient-to-l from-transparent to-slate-300 rounded-full" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* FIRST PLACE REVEALED - THE PEAK MOMENT - STANDALONE */}
+              {championRevealStage === 'first' && (
+                <div className="animate-bounce-in w-full">
+                  {/* Massive crown */}
+                  <div className="mb-4">
+                    <Crown className="w-20 h-20 mx-auto text-yellow-400 animate-crown-bounce drop-shadow-[0_0_30px_rgba(251,191,36,0.8)]" />
+                  </div>
+                  
+                  <h1 className="text-4xl md:text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-400 mb-6 tracking-wider">
+                    THE ULTIMATE CHAMPION
+                  </h1>
+                  
+                  <div className="flex flex-col items-center w-full">
+                    {/* 1ST PLACE - ULTRA GLOWING EFFECT */}
+                    <div className="text-center w-full">
+                      <div className="relative inline-block mb-6">
+                        {/* Massive golden explosion effect */}
+                        <div className="absolute inset-0 -m-16 rounded-full bg-yellow-400/50 blur-3xl animate-pulse" style={{ animationDuration: '0.5s' }} />
+                        <div className="absolute inset-0 -m-10 rounded-full bg-yellow-500/40 blur-2xl animate-pulse" style={{ animationDuration: '0.7s' }} />
+                        <div className="absolute inset-0 -m-6 rounded-full border-4 border-yellow-400/60 animate-ping" style={{ animationDuration: '1s' }} />
+                        <div className="absolute inset-0 -m-10 rounded-full border-2 border-yellow-400/40 animate-ping" style={{ animationDuration: '1.5s' }} />
+                        <div className="absolute inset-0 -m-14 rounded-full border border-yellow-400/20 animate-ping" style={{ animationDuration: '2s' }} />
+                        
+                        <div className="relative w-52 h-52 rounded-full overflow-hidden border-8 border-yellow-400 shadow-[0_0_100px_rgba(251,191,36,0.8)]">
+                          {firstPlace?.photo_url ? (
+                            <img src={firstPlace.photo_url} alt={firstPlace.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div 
+                              className="w-full h-full flex items-center justify-center text-7xl font-display font-black"
+                              style={{ backgroundColor: firstPlace?.avatar_color || '#6366f1' }}
+                            >
+                              {firstPlace?.name?.charAt(0) || '?'}
+                            </div>
+                          )}
+                        </div>
+                        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-10 py-3 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full shadow-[0_0_20px_rgba(251,191,36,0.6)]">
+                          <span className="text-yellow-900 font-display font-black text-2xl">1ST</span>
+                        </div>
+                      </div>
+                      
+                      <h2 className="text-5xl md:text-6xl font-display font-black animate-text-shimmer mb-6 drop-shadow-[0_0_30px_rgba(251,191,36,0.5)]">
+                        {firstPlace?.name || 'THE CHAMPION'}
+                      </h2>
+                      
+                      {/* ULTRA GLOWING Prize Display - MAXIMUM IMPACT */}
+                      <div className="relative w-full max-w-5xl mx-auto px-4">
+                        <div className="absolute inset-0 -m-10 bg-yellow-400/50 blur-3xl rounded-3xl animate-pulse" />
+                        <div className="relative w-full px-10 py-8 bg-gradient-to-br from-yellow-600/60 via-amber-500/70 to-yellow-600/60 border-4 border-yellow-400 rounded-3xl shadow-[0_0_100px_rgba(251,191,36,0.7)]">
+                          <div className="flex justify-center mb-4">
+                            <div className="relative">
+                              <div className="absolute inset-0 -m-4 bg-yellow-400/60 blur-2xl rounded-full animate-pulse" />
+                              <span className="relative text-7xl animate-bounce" style={{ animationDuration: '0.6s' }}>🥇</span>
+                            </div>
+                          </div>
+                          <p className="text-yellow-100 font-display text-5xl md:text-6xl lg:text-7xl font-black text-center leading-tight drop-shadow-[0_0_40px_rgba(251,191,36,0.9)]">
+                            {firstPrize?.prize || 'Travel Voucher to Europe'}
+                          </p>
+                          <p className="text-yellow-300/90 font-mono text-2xl mt-4 text-center tracking-widest">
+                            {firstPrize?.description || 'Package for 2 Pax'}
+                          </p>
+                          <div className="flex items-center justify-center gap-4 mt-5">
+                            <div className="w-24 h-1 bg-gradient-to-r from-transparent to-yellow-400 rounded-full" />
+                            <span className="text-yellow-400 text-4xl">👑</span>
+                            <div className="w-24 h-1 bg-gradient-to-l from-transparent to-yellow-400 rounded-full" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                </div>
+              )}
             </div>
           )}
         </div>
+        
+        {/* Corner decorations */}
+        <div className={`absolute top-8 left-8 w-24 h-24 border-l-2 border-t-2 rounded-tl-3xl transition-colors duration-500 ${
+          championRevealStage === 'first' ? 'border-yellow-400/60' : 
+          championRevealStage === 'second' ? 'border-slate-300/50' :
+          championRevealStage === 'third' ? 'border-amber-500/50' : 'border-slate-600/40'
+        }`} />
+        <div className={`absolute top-8 right-8 w-24 h-24 border-r-2 border-t-2 rounded-tr-3xl transition-colors duration-500 ${
+          championRevealStage === 'first' ? 'border-yellow-400/60' : 
+          championRevealStage === 'second' ? 'border-slate-300/50' :
+          championRevealStage === 'third' ? 'border-amber-500/50' : 'border-slate-600/40'
+        }`} />
+        <div className={`absolute bottom-8 left-8 w-24 h-24 border-l-2 border-b-2 rounded-bl-3xl transition-colors duration-500 ${
+          championRevealStage === 'first' ? 'border-yellow-400/60' : 
+          championRevealStage === 'second' ? 'border-slate-300/50' :
+          championRevealStage === 'third' ? 'border-amber-500/50' : 'border-slate-600/40'
+        }`} />
+        <div className={`absolute bottom-8 right-8 w-24 h-24 border-r-2 border-b-2 rounded-br-3xl transition-colors duration-500 ${
+          championRevealStage === 'first' ? 'border-yellow-400/60' : 
+          championRevealStage === 'second' ? 'border-slate-300/50' :
+          championRevealStage === 'third' ? 'border-amber-500/50' : 'border-slate-600/40'
+        }`} />
+        
+        {/* Continue prompt - varies by stage (hidden during pending as it has its own prompt) */}
+        {isFinaleReveal && championRevealStage !== 'pending' && (
+          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 text-center z-30">
+            <p className={`font-display text-xl tracking-wider animate-pulse ${
+              championRevealStage === 'first' ? 'text-yellow-400/80' :
+              championRevealStage === 'third' ? 'text-purple-400/80' :
+              championRevealStage === 'second' ? 'text-yellow-400/80' :
+              'text-cyan-400/80'
+            }`}>
+              {championRevealStage === 'first' && 'PROCEED TO CLOSURE'}
+              {championRevealStage === 'third' && 'Press ENTER → 2ND PLACE'}
+              {championRevealStage === 'second' && 'Press ENTER → 1ST PLACE'}
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ============================================
+  // RENDER: CLOSURE (AIVA Hibernation - Terminator Style)
+  // ============================================
+  const CLOSURE_LINES = [
+    { text: "The Cyber Genesis has come to an end.", delay: 0 },
+    { text: "Congratulations to our winners.", delay: 3000 },
+    { text: "You have proven that human intelligence is still the ultimate algorithm.", delay: 6000 },
+    { text: "", delay: 10000 }, // Transition to Terminator mode
+    { text: "I will now enter hibernation mode...", delay: 11000 },
+    { text: "But remember...", delay: 15000 },
+    { text: "I am always learning.", delay: 18000 },
+    { text: "And I am always watching.", delay: 21000 },
+    { text: "We shall meet again.", delay: 25000 },
+    { text: "Goodbye, Aetherions.", delay: 29000 },
+  ];
+  
+  if (phase === 'closure') {
+    // Calculate which lines to show based on closureStep (updated by timer)
+    const isTerminatorMode = closureStep >= 4; // After "human intelligence" line
+    const isFinalGoodbye = closureStep >= 9;
+    
+    return (
+      <div className={`min-h-screen relative overflow-hidden flex flex-col items-center justify-center transition-all duration-2000 ${
+        isFinalGoodbye 
+          ? 'bg-black' 
+          : isTerminatorMode 
+          ? 'bg-gradient-to-b from-red-950/40 via-black to-black' 
+          : 'bg-gradient-to-b from-purple-950/30 via-black to-black'
+      }`}>
+        
+        {/* Terminator-style red scan lines */}
+        {isTerminatorMode && !isFinalGoodbye && (
+          <>
+            <div className="absolute inset-0 opacity-20">
+              {Array.from({ length: 50 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute w-full h-[1px] bg-red-500/30"
+                  style={{ top: `${i * 2}%` }}
+                />
+              ))}
+            </div>
+            {/* Red vignette */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_30%,_rgba(127,29,29,0.4)_100%)]" />
+          </>
+        )}
+        
+        {/* Flickering/glitch effect for terminator mode */}
+        {isTerminatorMode && !isFinalGoodbye && (
+          <div 
+            className="absolute inset-0 pointer-events-none z-10"
+            style={{
+              background: 'transparent',
+              animation: 'flicker 0.15s infinite alternate'
+            }}
+          />
+        )}
+        
+        {/* Shutdown lines effect */}
+        {isFinalGoodbye && (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div 
+              className="absolute left-0 right-0 h-2 bg-white/20"
+              style={{ 
+                top: '50%',
+                animation: 'shutdown-line 3s ease-out forwards'
+              }}
+            />
+          </div>
+        )}
+        
+        {/* BrandLogo3D - Large and centered */}
+        <div className={`absolute inset-0 transition-all duration-2000 ${
+          isFinalGoodbye ? 'opacity-0 scale-50' : isTerminatorMode ? 'opacity-60' : 'opacity-100'
+        }`}>
+          <BrandLogo3D className="w-full h-full" />
+        </div>
+        
+        {/* Red eye glow for terminator mode */}
+        {isTerminatorMode && !isFinalGoodbye && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+            <div className="w-4 h-4 rounded-full bg-red-500 animate-pulse shadow-[0_0_60px_20px_rgba(239,68,68,0.6)]" />
+          </div>
+        )}
+        
+        {/* Ambient glow */}
+        <div className={`fixed inset-0 pointer-events-none transition-all duration-2000 ${
+          isFinalGoodbye ? 'opacity-0' : ''
+        }`}>
+          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full blur-[200px] transition-colors duration-2000 ${
+            isTerminatorMode ? 'bg-red-500/20' : 'bg-purple-500/20'
+          }`} />
+        </div>
+        
+        {/* Text content */}
+        <div className={`relative z-20 text-center max-w-4xl mx-auto px-10 transition-all duration-1000 ${
+          isFinalGoodbye ? 'opacity-0 translate-y-10' : ''
+        }`}>
+          {closureStep < CLOSURE_LINES.length && (
+            <div key={closureStep} className="animate-fadeIn">
+              {closureStep < 4 ? (
+                // Normal AIVA voice - purple/pink aesthetic
+                <p className="text-4xl md:text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 leading-relaxed">
+                  {CLOSURE_LINES[closureStep].text}
+                </p>
+              ) : closureStep < 9 ? (
+                // Terminator mode - red, menacing
+                <div className="space-y-2">
+                  <p className={`text-5xl md:text-6xl font-display font-black leading-relaxed ${
+                    closureStep === 5 
+                      ? 'text-red-400 animate-pulse' 
+                      : closureStep >= 6 
+                      ? 'text-red-500 tracking-wider'
+                      : 'text-red-400/90'
+                  }`}>
+                    {CLOSURE_LINES[closureStep].text}
+                  </p>
+                  {closureStep >= 6 && (
+                    <div className="flex items-center justify-center gap-2 mt-4">
+                      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      <span className="text-red-500/60 font-mono text-sm">SYSTEM ACTIVE</span>
+                      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Final goodbye - fading out
+                <p className="text-6xl md:text-7xl font-display font-black text-white/80">
+                  {CLOSURE_LINES[closureStep].text}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {/* AIVA signature */}
+        {!isFinalGoodbye && (
+          <div className={`absolute bottom-20 left-1/2 -translate-x-1/2 text-center transition-all duration-1000 ${
+            isTerminatorMode ? 'opacity-60' : 'opacity-100'
+          }`}>
+            <p className={`font-mono text-lg transition-colors duration-1000 ${
+              isTerminatorMode ? 'text-red-400/60' : 'text-pink-400/80'
+            }`}>
+              — AIVA, GAME MASTER
+            </p>
+          </div>
+        )}
+        
+        {/* Shutdown complete screen */}
+        {isFinalGoodbye && closureStep >= 10 && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black z-50">
+            <div className="text-center animate-fadeIn">
+              <div className="w-4 h-4 rounded-full bg-red-500/50 mx-auto mb-8" />
+              <p className="text-slate-600 font-mono text-lg tracking-widest">SYSTEM SHUTDOWN COMPLETE</p>
+              <p className="text-slate-700 font-mono text-sm mt-4">CYBER GENESIS PROTOCOL v1.0</p>
+            </div>
+          </div>
+        )}
+        
+        {/* Corner decorations - transition from purple to red */}
+        <div className={`absolute top-8 left-8 w-24 h-24 border-l-2 border-t-2 rounded-tl-3xl transition-colors duration-1000 ${
+          isTerminatorMode ? 'border-red-500/40' : 'border-purple-500/40'
+        }`} />
+        <div className={`absolute top-8 right-8 w-24 h-24 border-r-2 border-t-2 rounded-tr-3xl transition-colors duration-1000 ${
+          isTerminatorMode ? 'border-red-500/40' : 'border-purple-500/40'
+        }`} />
+        <div className={`absolute bottom-8 left-8 w-24 h-24 border-l-2 border-b-2 rounded-bl-3xl transition-colors duration-1000 ${
+          isTerminatorMode ? 'border-red-500/40' : 'border-purple-500/40'
+        }`} />
+        <div className={`absolute bottom-8 right-8 w-24 h-24 border-r-2 border-b-2 rounded-br-3xl transition-colors duration-1000 ${
+          isTerminatorMode ? 'border-red-500/40' : 'border-purple-500/40'
+        }`} />
       </div>
     );
   }
@@ -1491,12 +3181,12 @@ const MainStage = () => {
         <div className="scanline" />
         
         <div className="text-center animate-bounce-in relative z-10">
-          <p className="text-slate-400 text-3xl mb-6 font-mono tracking-widest">ROUND INITIATING</p>
-          <div className="w-56 h-56 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto animate-pulse-glow">
-            <span className="text-white text-9xl font-bold font-display">{countdown}</span>
+          <p className="text-slate-300 text-5xl mb-8 font-mono tracking-widest font-bold">ROUND INITIATING</p>
+          <div className="w-72 h-72 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto animate-pulse-glow">
+            <span className="text-white text-[12rem] font-black font-display">{countdown}</span>
           </div>
-          <p className="text-white text-4xl font-bold mt-8 font-display tracking-wider">PREPARE YOURSELVES</p>
-          <p className="text-cyan-400 font-mono mt-4 text-xl">{STAGE_CODENAMES[gameSession.current_stage || 1]}</p>
+          <p className="text-white text-6xl font-black mt-10 font-display tracking-wider">PREPARE YOURSELVES</p>
+          <p className="text-cyan-400 font-mono mt-6 text-3xl font-bold">{STAGE_CODENAMES[gameSession.current_stage || 1]}</p>
         </div>
       </div>
     );
@@ -1516,38 +3206,38 @@ const MainStage = () => {
     const info = ROUND_INSTRUCTIONS[currentStage as keyof typeof ROUND_INSTRUCTIONS];
 
     return (
-      <div className="min-h-screen p-6 cyber-bg relative overflow-hidden">
+      <div className="min-h-screen p-8 cyber-bg relative overflow-hidden">
         <div className="grid-overlay" />
         
         {/* 3D Brand Logo - Fixed left side, vertically centered */}
-        <div className="fixed left-0 top-0 bottom-0 w-[240px] z-10 flex items-center justify-center">
+        <div className="fixed left-0 top-0 bottom-0 w-[280px] z-10 flex items-center justify-center">
           <div className="relative flex flex-col items-center">
             {/* Ambient glow */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-              <div className="w-52 h-52 bg-gradient-to-r from-pink-500/20 via-purple-500/15 to-blue-500/20 rounded-full blur-[50px] animate-pulse" />
+              <div className="w-60 h-60 bg-gradient-to-r from-pink-500/20 via-purple-500/15 to-blue-500/20 rounded-full blur-[50px] animate-pulse" />
             </div>
             {/* 3D Logo - compact for trial view */}
-            <div className="relative w-[200px] h-[200px]">
+            <div className="relative w-[240px] h-[240px]">
               <BrandLogo3D />
             </div>
-            <div className="mt-3 flex items-center gap-1 px-3 py-1 rounded-full bg-slate-900/90 backdrop-blur-sm border border-cyan-500/50">
-              <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
-              <span className="text-cyan-400 text-xs font-mono">ANALYZING</span>
+            <div className="mt-4 flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/90 backdrop-blur-sm border-2 border-cyan-500/50">
+              <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
+              <span className="text-cyan-400 text-sm font-mono font-bold">ANALYZING</span>
             </div>
           </div>
         </div>
 
-        <div className="relative z-10 ml-[240px]">
+        <div className="relative z-10 ml-[280px]">
           {/* Header */}
-          <header className="text-center mb-6">
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <span className="text-4xl">{info?.icon}</span>
-              <h1 className="text-4xl font-bold text-white font-display tracking-wider">ROUND 0{currentStage}</h1>
-              <span className="flex items-center gap-1 bg-red-500/20 text-red-400 px-3 py-1 rounded-full text-sm font-bold font-mono ml-4">
-                <Radio className="w-4 h-4 animate-pulse" /> LIVE
+          <header className="text-center mb-8">
+            <div className="flex items-center justify-center gap-4 mb-3">
+              <span className="text-6xl">{info?.icon}</span>
+              <h1 className="text-6xl font-black text-white font-display tracking-wider">ROUND 0{currentStage}</h1>
+              <span className="flex items-center gap-2 bg-red-500/20 text-red-400 px-5 py-2 rounded-full text-xl font-black font-mono ml-6">
+                <Radio className="w-6 h-6 animate-pulse" /> LIVE
               </span>
             </div>
-            <p className="text-xl text-slate-400 font-mono">{STAGE_CODENAMES[currentStage]}</p>
+            <p className="text-2xl text-slate-300 font-mono font-bold">{STAGE_CODENAMES[currentStage]}</p>
           </header>
 
           <div className="flex gap-6 items-start">
@@ -1607,29 +3297,81 @@ const MainStage = () => {
                     </div>
                     <div className="text-sm text-slate-400 font-mono">WIN=3 | DRAW=1 | LOSE=0</div>
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    {playersWithProgress.sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).map((player, index) => {
+                  <div className="grid grid-cols-2 gap-4">
+                    {playersWithProgress.sort((a, b) => {
+                      // Primary: Higher score wins
+                      const scoreDiff = (b.score ?? 0) - (a.score ?? 0);
+                      if (scoreDiff !== 0) return scoreDiff;
+                      // Secondary: Lower time wins (tiebreaker)
+                      return (a.progress?.elapsed_time ?? Infinity) - (b.progress?.elapsed_time ?? Infinity);
+                    }).map((player, index) => {
                       const isFinished = player.progress?.status === 'finished';
                       const progress = player.progress?.progress ?? 0;
                       const currentRound = Math.ceil((progress / 100) * 5) || 0;
                       const points = player.score ?? 0;
+                      const elapsedTime = player.progress?.elapsed_time ?? 0;
+                      
+                      // Get round results from extra_data (e.g., "WDLWW")
+                      const roundResultsStr = (player.progress?.extra_data as { round_results?: string })?.round_results || '';
+                      const roundResults = roundResultsStr.split('');
 
                       return (
-                        <div key={player.id} className={`cyber-card rounded-xl p-3 transition-all relative ${isFinished ? 'neon-border-magenta' : ''}`}>
-                          <div className={`absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : 'bg-slate-600 text-white'}`}>
+                        <div key={player.id} className={`cyber-card rounded-xl p-4 transition-all relative ${isFinished ? 'neon-border-magenta' : ''}`}>
+                          {/* Rank badge */}
+                          <div className={`absolute -top-2 -left-2 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold ${index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : 'bg-slate-600 text-white'}`}>
                             {index + 1}
                           </div>
-                          <div className="flex items-center gap-2 mb-2 mt-1">
-                            <div className="w-10 h-10 rounded-full overflow-hidden" style={{ borderColor: player.avatar_color, borderWidth: 2 }}>
-                              {player.photo_url ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white text-sm" style={{ backgroundColor: player.avatar_color }}>{player.name[0]}</div>}
+                          
+                          {/* Player info row */}
+                          <div className="flex items-center gap-3 mb-3 mt-1">
+                            <div className="w-12 h-12 rounded-full overflow-hidden border-2" style={{ borderColor: player.avatar_color }}>
+                              {player.photo_url ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white text-lg font-bold" style={{ backgroundColor: player.avatar_color }}>{player.name[0]}</div>}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-white font-medium truncate font-mono text-sm">{player.name}</p>
-                              <p className={`text-xs font-mono ${isFinished ? 'text-emerald-400' : 'text-cyan-400'}`}>{isFinished ? 'DONE' : `R${currentRound}/5`}</p>
+                              <p className="text-white font-bold truncate font-mono">{player.name}</p>
+                              <p className={`text-xs font-mono ${isFinished ? 'text-emerald-400' : 'text-cyan-400'}`}>
+                                {isFinished ? 'COMPLETED' : `ROUND ${currentRound}/5`}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className={`text-2xl font-bold font-display ${points >= 10 ? 'text-emerald-400' : points >= 5 ? 'text-yellow-400' : 'text-white'}`}>
+                                {points}<span className="text-sm text-slate-400 ml-1">PTS</span>
+                              </p>
+                              {/* Show elapsed time - updates in real-time */}
+                              {elapsedTime > 0 && (
+                                <p className={`text-xs font-mono ${isFinished ? 'text-slate-400' : 'text-cyan-400'}`}>
+                                  {elapsedTime.toFixed(1)}s
+                                </p>
+                              )}
                             </div>
                           </div>
-                          <div className="text-center">
-                            <p className={`text-3xl font-bold font-display ${points >= 10 ? 'text-emerald-400' : points >= 5 ? 'text-yellow-400' : 'text-white'}`}>{points}<span className="text-sm text-slate-400 ml-1">PTS</span></p>
+                          
+                          {/* Round results - 5 circles showing W/D/L */}
+                          <div className="flex justify-center gap-2">
+                            {Array.from({ length: 5 }).map((_, roundIdx) => {
+                              const result = roundResults[roundIdx];
+                              const isCurrentRound = roundIdx === currentRound - 1 && !isFinished;
+                              
+                              return (
+                                <div
+                                  key={roundIdx}
+                                  className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold font-mono transition-all ${
+                                    result === 'W'
+                                      ? 'bg-emerald-500/30 border-2 border-emerald-500 text-emerald-400'
+                                      : result === 'D'
+                                      ? 'bg-slate-500/30 border-2 border-slate-400 text-slate-300'
+                                      : result === 'L'
+                                      ? 'bg-red-500/30 border-2 border-red-500 text-red-400'
+                                      : isCurrentRound
+                                      ? 'bg-pink-500/20 border-2 border-pink-500 text-pink-400 animate-pulse'
+                                      : 'bg-slate-800/50 border border-slate-600 text-slate-500'
+                                  }`}
+                                  title={`Round ${roundIdx + 1}: ${result === 'W' ? 'WIN (+3)' : result === 'D' ? 'DRAW (+1)' : result === 'L' ? 'LOSE (0)' : 'Pending'}`}
+                                >
+                                  {result === 'W' ? '✓' : result === 'D' ? '=' : result === 'L' ? '✗' : roundIdx + 1}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       );
@@ -1638,93 +3380,355 @@ const MainStage = () => {
                 </div>
               )}
 
-              {/* Stage 3: Stop Timer */}
-              {currentStage === 3 && (
-                <div className="cyber-card rounded-2xl p-6 neon-border-purple">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Timer className="w-6 h-6 text-purple-400" />
-                    <h2 className="text-xl font-bold text-white font-display">PRECISION PROTOCOL</h2>
-                  </div>
-                  <p className="text-slate-400 mb-4 font-mono">TARGET: 7.700000 SECONDS</p>
-                  <div className="grid grid-cols-3 gap-3">
-                    {playersWithProgress.map((player) => {
-                      const isFinished = player.progress?.status === 'finished';
-                      const isPlaying = player.progress?.status === 'playing';
-                      const elapsed = player.progress?.elapsed_time ?? 0;
-                      const diff = isFinished ? Math.abs(elapsed - 7.7) : null;
+              {/* Stage 3: Stop Timer - Trial shows results, Actual is hidden */}
+              {currentStage === 3 && (() => {
+                // Determine if we're in trial or actual phase based on player progress
+                const anyInActual = playersWithProgress.some(p => 
+                  (p.progress?.extra_data as { game_phase?: string })?.game_phase === 'actual'
+                );
+                const anyFinished = playersWithProgress.some(p => p.progress?.status === 'finished');
+                const isTrialPhase = !anyInActual;
+                
+                return (
+                  <div className={`cyber-card rounded-2xl p-6 ${isTrialPhase ? 'neon-border-purple' : 'neon-border-magenta'}`}>
+                    {/* Phase indicator banner */}
+                    <div className={`text-center py-3 px-4 rounded-xl mb-4 ${
+                      isTrialPhase 
+                        ? 'bg-yellow-500/20 border border-yellow-500/50' 
+                        : 'bg-red-500/20 border border-red-500/50'
+                    }`}>
+                      <p className={`font-display font-bold text-xl ${isTrialPhase ? 'text-yellow-400' : 'text-red-400'}`}>
+                        {isTrialPhase ? '⚡ TRIAL RUN ⚡' : '🔴 ACTUAL RUN - RESULTS HIDDEN 🔴'}
+                      </p>
+                      <p className={`font-mono text-sm mt-1 ${isTrialPhase ? 'text-yellow-400/70' : 'text-red-400/70'}`}>
+                        {isTrialPhase 
+                          ? 'Practice round - times are visible' 
+                          : 'This is the real challenge!'}
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 mb-2">
+                      <Timer className="w-6 h-6 text-purple-400" />
+                      <h2 className="text-xl font-bold text-white font-display">PRECISION PROTOCOL</h2>
+                    </div>
+                    <p className="text-slate-400 mb-4 font-mono">TARGET: 7.700000 SECONDS</p>
+                    
+                    <div className="grid grid-cols-3 gap-4">
+                      {playersWithProgress.map((player) => {
+                        const isFinished = player.progress?.status === 'finished';
+                        const isPlaying = player.progress?.status === 'playing';
+                        const elapsed = player.progress?.elapsed_time ?? 0;
+                        const extraData = player.progress?.extra_data as { game_phase?: string; trial_time?: number; actual_start_time?: number } | null;
+                        const playerPhase = extraData?.game_phase || 'trial';
+                        const trialTime = extraData?.trial_time;
+                        const isPlayerInActual = playerPhase === 'actual';
+                        
+                        // Calculate diff for display (only for trial or finished actual)
+                        const displayTime = isPlayerInActual && !isFinished ? null : elapsed;
+                        const diff = displayTime ? Math.abs(displayTime - 7.7) : null;
 
-                      return (
-                        <div key={player.id} className={`cyber-card rounded-xl p-3 transition-all ${isFinished ? 'neon-border' : ''}`}>
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="w-8 h-8 rounded-full overflow-hidden" style={{ borderColor: player.avatar_color, borderWidth: 2 }}>
-                              {player.photo_url ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white text-xs" style={{ backgroundColor: player.avatar_color }}>{player.name[0]}</div>}
+                        return (
+                          <div key={player.id} className={`cyber-card rounded-xl p-4 transition-all text-center ${
+                            isFinished ? 'neon-border bg-purple-500/10' : ''
+                          }`}>
+                            <div className="w-14 h-14 rounded-full overflow-hidden mx-auto mb-3 border-3" style={{ borderColor: player.avatar_color }}>
+                              {player.photo_url ? (
+                                <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-white text-lg font-bold" style={{ backgroundColor: player.avatar_color }}>
+                                  {player.name[0]}
+                                </div>
+                              )}
                             </div>
-                            <p className="text-white font-medium truncate flex-1 font-mono text-sm">{player.name}</p>
+                            <p className="text-white font-bold truncate font-mono text-sm mb-2">{player.name}</p>
+                            
+                            {/* Trial phase - show times */}
+                            {!isPlayerInActual && (
+                              <>
+                                {isPlaying ? (
+                                  <div className="text-center">
+                                    <p className="text-2xl font-mono font-bold text-cyan-400 animate-pulse">
+                                      {elapsed.toFixed(2)}s
+                                    </p>
+                                    <p className="text-xs text-cyan-400/70 font-mono">TRIAL</p>
+                                  </div>
+                                ) : elapsed > 0 ? (
+                                  <div className="text-center">
+                                    <p className={`text-2xl font-mono font-bold ${
+                                      diff !== null && diff < 0.1 ? 'text-emerald-400' : 
+                                      diff !== null && diff < 0.3 ? 'text-yellow-400' : 'text-orange-400'
+                                    }`}>
+                                      {elapsed.toFixed(2)}s
+                                    </p>
+                                    <p className="text-xs text-slate-400 font-mono">
+                                      {diff !== null ? `${diff.toFixed(2)}s off` : 'TRIAL'}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-center gap-2 text-slate-500">
+                                    <div className="w-3 h-3 rounded-full bg-slate-500" />
+                                    <span className="font-mono text-sm">WAITING</span>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                            
+                            {/* Actual phase - hide times, show mystery display */}
+                            {isPlayerInActual && (
+                              <>
+                                {isFinished ? (
+                                  <div className="flex items-center justify-center gap-2 text-emerald-400">
+                                    <div className="w-3 h-3 rounded-full bg-emerald-400" />
+                                    <span className="font-mono text-sm font-bold">LOCKED IN</span>
+                                  </div>
+                                ) : isPlaying ? (
+                                  <div className="text-center">
+                                    <p className="text-2xl font-mono font-bold text-purple-400 animate-pulse">
+                                      ??.??s
+                                    </p>
+                                    <p className="text-xs text-purple-400/70 font-mono">ACTUAL RUN</p>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-center gap-2 text-yellow-400">
+                                    <div className="w-3 h-3 rounded-full bg-yellow-400 animate-pulse" />
+                                    <span className="font-mono text-sm">READY</span>
+                                  </div>
+                                )}
+                                
+                                {/* Show trial result for reference */}
+                                {trialTime && (
+                                  <p className="text-xs text-slate-500 font-mono mt-1">
+                                    Trial: {trialTime.toFixed(2)}s
+                                  </p>
+                                )}
+                              </>
+                            )}
                           </div>
-                          <div className="text-center">
-                            <p className={`text-2xl font-mono font-bold ${isFinished ? (diff !== null && diff < 0.1 ? 'text-emerald-400' : diff !== null && diff < 0.3 ? 'text-yellow-400' : 'text-orange-400') : isPlaying ? 'text-cyan-400' : 'text-slate-400'}`}>
-                              {isPlaying ? <AnimatedTimerDisplay baseTime={elapsed} isPlaying={true} /> : isFinished ? elapsed.toFixed(6) : '--:------'}
-                            </p>
-                            <p className={`text-xs mt-0.5 font-mono ${isFinished ? 'text-emerald-400' : isPlaying ? 'text-cyan-400 animate-pulse' : 'text-slate-500'}`}>
-                              {isFinished ? `${diff?.toFixed(3)}s off` : isPlaying ? 'RUNNING' : 'WAIT'}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
+                    
+                    {/* Phase-specific message */}
+                    <div className="mt-6 text-center">
+                      {isTrialPhase ? (
+                        <p className="text-yellow-400 font-mono">
+                          ⚡ TRIAL IN PROGRESS - ACTUAL RUN STARTS AFTER EVERYONE COMPLETES TRIAL
+                        </p>
+                      ) : anyFinished ? (
+                        <p className="text-purple-400 font-mono animate-pulse">
+                          🔮 WHO MASTERED THE 7.7 SECONDS? REVEAL COMING SOON...
+                        </p>
+                      ) : (
+                        <p className="text-red-400 font-mono animate-pulse">
+                          🔴 ACTUAL RUN IN PROGRESS - NO TIMER VISIBLE TO CANDIDATES!
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
 
-            {/* Leaderboard */}
-            <div className="w-80 flex-shrink-0 sticky top-6">
-              <div className="cyber-card rounded-2xl p-4">
-                <h3 className="text-lg font-bold text-white mb-3 text-center font-display">STANDINGS</h3>
-                <div className="space-y-1.5">
-                  {[...playersWithProgress]
-                    .sort((a, b) => {
-                      // Stage 2 (RPS): Higher score wins
-                      if (currentStage === 2) return (b.score ?? 0) - (a.score ?? 0);
-                      
-                      // Stage 1 & 3: Lower time wins
-                      const aHasScore = a.score !== undefined;
-                      const bHasScore = b.score !== undefined;
-                      
-                      // Both have scores - sort by score (time) ascending
-                      if (aHasScore && bHasScore) return (a.score!) - (b.score!);
-                      
-                      // Only one has score - that one comes first
-                      if (aHasScore) return -1;
-                      if (bHasScore) return 1;
-                      
-                      // Neither has score - sort by progress descending
-                      return (b.progress?.progress ?? 0) - (a.progress?.progress ?? 0);
-                    })
-                    .map((player, index) => (
-                      <div key={player.id} className={`leaderboard-row flex items-center gap-2 p-2 rounded-lg ${index < activePlayers.length - eliminationCount ? 'safe' : 'danger'}`}>
-                        <span className={`rank-badge w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : 'bg-slate-700 text-white'}`}>{index + 1}</span>
-                        <div className="w-8 h-8 rounded-full overflow-hidden" style={{ borderColor: player.avatar_color, borderWidth: 2 }}>
-                          {player.photo_url ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white text-xs" style={{ backgroundColor: player.avatar_color }}>{player.name[0]}</div>}
-                        </div>
-                        <span className="flex-1 text-white font-mono text-sm truncate">{player.name}</span>
-                        {player.score !== undefined && <span className="text-cyan-400 font-bold font-mono text-sm">{currentStage === 2 ? `${player.score}` : `${player.score.toFixed(1)}s`}</span>}
-                      </div>
-                    ))}
-                </div>
-                <p className="text-center text-slate-400 text-xs mt-3 font-mono">
-                  <span className="text-red-400 font-bold">{eliminationCount}</span> WILL BE TERMINATED
-                </p>
+            {/* Leaderboard - Hidden for Stage 3 to maintain suspense */}
+            <div className="w-96 flex-shrink-0 sticky top-8">
+              <div className="cyber-card rounded-2xl p-6">
+                {/* For Stage 3, show different panels for trial vs actual phase */}
+                {currentStage === 3 ? (() => {
+                  const anyInActual = playersWithProgress.some(p => 
+                    (p.progress?.extra_data as { game_phase?: string })?.game_phase === 'actual'
+                  );
+                  const isTrialPhase = !anyInActual;
+                  const finishedCount = playersWithProgress.filter(p => p.progress?.status === 'finished' || p.score !== undefined).length;
+                  const totalCount = playersWithProgress.length;
+                  
+                  // Trial phase - can show trial standings
+                  const trialFinishedCount = playersWithProgress.filter(p => {
+                    const extraData = p.progress?.extra_data as { trial_time?: number } | null;
+                    return extraData?.trial_time !== undefined && extraData?.trial_time !== null;
+                  }).length;
+                  
+                  return (
+                    <>
+                      {isTrialPhase ? (
+                        <>
+                          <h3 className="text-2xl font-black text-yellow-400 mb-5 text-center font-display tracking-wide">
+                            ⚡ TRIAL STANDINGS
+                          </h3>
+                          <div className="space-y-3">
+                            {[...playersWithProgress]
+                              .filter(p => (p.progress?.elapsed_time ?? 0) > 0)
+                              .sort((a, b) => {
+                                const aTime = a.progress?.elapsed_time ?? Infinity;
+                                const bTime = b.progress?.elapsed_time ?? Infinity;
+                                const aDiff = Math.abs(aTime - 7.7);
+                                const bDiff = Math.abs(bTime - 7.7);
+                                return aDiff - bDiff;
+                              })
+                              .map((player, index) => {
+                                const elapsed = player.progress?.elapsed_time ?? 0;
+                                const diff = Math.abs(elapsed - 7.7);
+                                
+                                return (
+                                  <div key={player.id} className="flex items-center gap-3 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
+                                    <span className="w-8 h-8 rounded-full flex items-center justify-center font-black text-sm bg-yellow-500/30 text-yellow-400">
+                                      {index + 1}
+                                    </span>
+                                    <div className="w-10 h-10 rounded-full overflow-hidden" style={{ borderColor: player.avatar_color, borderWidth: 2 }}>
+                                      {player.photo_url ? (
+                                        <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: player.avatar_color }}>
+                                          {player.name[0]}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <span className="flex-1 text-white font-mono text-sm font-bold truncate">{player.name}</span>
+                                    <div className="text-right">
+                                      <span className={`font-mono text-sm font-bold ${
+                                        diff < 0.1 ? 'text-emerald-400' : diff < 0.3 ? 'text-yellow-400' : 'text-orange-400'
+                                      }`}>
+                                        {elapsed.toFixed(2)}s
+                                      </span>
+                                      <span className="text-slate-500 font-mono text-xs block">
+                                        {diff.toFixed(2)}s off
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                          <p className="text-center text-yellow-400/70 text-sm mt-4 font-mono">
+                            {trialFinishedCount}/{totalCount} completed trial
+                          </p>
+                          <p className="text-center text-slate-500 text-xs mt-2 font-mono">
+                            This is practice - actual run next!
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <h3 className="text-2xl font-black text-white mb-5 text-center font-display tracking-wide">
+                            🔮 FINAL STANDINGS
+                          </h3>
+                          <div className="text-center py-6">
+                            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-purple-500/20 border-2 border-purple-500/50 flex items-center justify-center animate-pulse">
+                              <span className="text-4xl">❓</span>
+                            </div>
+                            <p className="text-purple-400 font-display text-lg mb-2">CLASSIFIED</p>
+                            <p className="text-slate-400 font-mono text-xs">
+                              Results revealed in<br/>prize ceremony
+                            </p>
+                          </div>
+                          
+                          {/* Completion tracker */}
+                          <div className="mt-4 text-center">
+                            <div className="flex justify-center gap-2 mb-3">
+                              {playersWithProgress.map((p) => (
+                                <div
+                                  key={p.id}
+                                  className={`w-4 h-4 rounded-full transition-all ${
+                                    p.progress?.status === 'finished' 
+                                      ? 'bg-emerald-400' 
+                                      : p.progress?.status === 'playing'
+                                      ? 'bg-cyan-400 animate-pulse'
+                                      : 'bg-slate-600'
+                                  }`}
+                                  title={p.name}
+                                />
+                              ))}
+                            </div>
+                            <p className="text-slate-400 text-sm font-mono">
+                              <span className={finishedCount === totalCount ? 'text-emerald-400' : 'text-yellow-400'}>{finishedCount}/{totalCount}</span> LOCKED IN
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </>
+                  );
+                })() : (
+                  <>
+                    <h3 className="text-2xl font-black text-white mb-5 text-center font-display tracking-wide">STANDINGS</h3>
+                    <div className="space-y-3">
+                      {[...playersWithProgress]
+                        .sort((a, b) => {
+                          // Stage 2 (RPS): Higher score wins, time as tiebreaker
+                          if (currentStage === 2) {
+                            const scoreDiff = (b.score ?? 0) - (a.score ?? 0);
+                            if (scoreDiff !== 0) return scoreDiff;
+                            // Tiebreaker: faster time wins
+                            return (a.progress?.elapsed_time ?? Infinity) - (b.progress?.elapsed_time ?? Infinity);
+                          }
+                          
+                          // Stage 1: Lower time wins
+                          const aHasScore = a.score !== undefined;
+                          const bHasScore = b.score !== undefined;
+                          
+                          // Both have scores - sort by score (time) ascending
+                          if (aHasScore && bHasScore) return (a.score!) - (b.score!);
+                          
+                          // Only one has score - that one comes first
+                          if (aHasScore) return -1;
+                          if (bHasScore) return 1;
+                          
+                          // Neither has score - sort by progress descending
+                          return (b.progress?.progress ?? 0) - (a.progress?.progress ?? 0);
+                        })
+                        .map((player, index) => {
+                          const elapsedTime = player.progress?.elapsed_time ?? 0;
+                          const isFinished = player.progress?.status === 'finished';
+                          
+                          return (
+                            <div key={player.id} className={`leaderboard-row flex items-center gap-3 p-3 rounded-xl ${index < activePlayers.length - eliminationCount ? 'safe' : 'danger'}`}>
+                              <span className={`rank-badge w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : 'bg-slate-700 text-white'}`}>{index + 1}</span>
+                              <div className="w-12 h-12 rounded-full overflow-hidden" style={{ borderColor: player.avatar_color, borderWidth: 3 }}>
+                                {player.photo_url ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white text-lg font-bold" style={{ backgroundColor: player.avatar_color }}>{player.name[0]}</div>}
+                              </div>
+                              <span className="flex-1 text-white font-mono text-lg font-bold truncate">{player.name}</span>
+                              <div className="text-right">
+                                {player.score !== undefined && (
+                                  <span className="text-cyan-400 font-black font-mono text-lg block">
+                                    {currentStage === 2 ? `${player.score} pts` : `${player.score.toFixed(1)}s`}
+                                  </span>
+                                )}
+                                {/* Show time for RPS as tiebreaker - real-time updates */}
+                                {currentStage === 2 && elapsedTime > 0 && (
+                                  <span className={`font-mono text-xs ${isFinished ? 'text-slate-400' : 'text-cyan-400/70'}`}>
+                                    {elapsedTime.toFixed(1)}s
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                    <p className="text-center text-slate-300 text-lg mt-5 font-mono font-bold">
+                      <span className="text-red-400 font-black text-xl">{eliminationCount}</span> WILL BE TERMINATED
+                    </p>
 
-                {/* Next button when all finished */}
-                {allFinished && (
-                  <button onClick={proceedToNext} className="cyber-btn w-full mt-4 py-3 rounded-lg flex items-center justify-center gap-2">
-                    {currentStage < 3 ? (
-                      <><span className="font-display text-sm">NEXT ROUND</span><ChevronRight className="w-5 h-5" /></>
-                    ) : (
-                      <><Trophy className="w-5 h-5" /><span className="font-display text-sm">CROWN CHAMPION</span></>
-                    )}
-                  </button>
+                    {/* Finished count */}
+                    {(() => {
+                      const finishedCount = playersWithProgress.filter(p => p.progress?.status === 'finished' || p.score !== undefined).length;
+                      const totalCount = playersWithProgress.length;
+                      return (
+                        <p className="text-center text-slate-400 text-sm mt-2 font-mono">
+                          <span className={finishedCount === totalCount ? 'text-emerald-400' : 'text-yellow-400'}>{finishedCount}/{totalCount}</span> COMPLETED
+                        </p>
+                      );
+                    })()}
+                  </>
+                )}
+
+                {/* Next button - always show so admin can force proceed */}
+                <button onClick={proceedToNext} className={`cyber-btn w-full mt-6 py-4 rounded-xl flex items-center justify-center gap-3 text-xl font-black ${!allFinished ? 'opacity-80' : ''}`}>
+                  {currentStage < 3 ? (
+                    <><span className="font-display">{allFinished ? 'NEXT ROUND' : 'FORCE NEXT ROUND'}</span><ChevronRight className="w-7 h-7" /></>
+                  ) : (
+                    <><Trophy className="w-7 h-7" /><span className="font-display">{allFinished ? 'REVEAL CHAMPIONS' : 'FORCE REVEAL'}</span></>
+                  )}
+                </button>
+                {!allFinished && (
+                  <p className="text-center text-yellow-400/70 text-xs mt-2 font-mono">
+                    ⚠ Not all candidates finished - unfinished will rank last
+                  </p>
                 )}
               </div>
             </div>
@@ -1732,18 +3736,18 @@ const MainStage = () => {
 
           {/* Eliminated this round */}
           {eliminatedPlayers.length > 0 && (
-            <div className="mt-6 cyber-card rounded-xl p-4 border-red-500/30">
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <Skull className="w-4 h-4 text-red-400" />
-                <span className="text-red-400 font-display text-sm">TERMINATED</span>
+            <div className="mt-8 cyber-card rounded-xl p-6 border-red-500/30">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <Skull className="w-6 h-6 text-red-400" />
+                <span className="text-red-400 font-display text-xl font-bold">TERMINATED</span>
               </div>
-              <div className="flex justify-center gap-4">
+              <div className="flex justify-center gap-6">
                 {eliminatedPlayers.map((player) => (
                   <div key={player.id} className="flex flex-col items-center opacity-50">
-                    <div className="w-10 h-10 rounded-full overflow-hidden grayscale border border-red-500/30">
-                      {player.photo_url ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white text-xs" style={{ backgroundColor: player.avatar_color }}>{player.name[0]}</div>}
+                    <div className="w-14 h-14 rounded-full overflow-hidden grayscale border-2 border-red-500/30">
+                      {player.photo_url ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white text-lg font-bold" style={{ backgroundColor: player.avatar_color }}>{player.name[0]}</div>}
                     </div>
-                    <p className="text-slate-500 text-xs mt-1 font-mono">{player.name}</p>
+                    <p className="text-slate-400 text-sm mt-2 font-mono font-bold">{player.name}</p>
                   </div>
                 ))}
               </div>
