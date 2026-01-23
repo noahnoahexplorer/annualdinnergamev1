@@ -2376,16 +2376,16 @@ const MainStage = () => {
           />
         )}
         
-        {/* Main Content */}
-        <div className="relative z-10 text-center max-w-5xl mx-auto px-8">
+        {/* Main Content - Viewport scaled */}
+        <div className="relative z-10 text-center w-full max-w-[90vw] mx-auto px-[2vw] flex flex-col items-center justify-center">
           
-          {/* Rank Badge - Larger and more dramatic */}
-          <div className={`mb-6 ${prizeAnimationPhase !== 'entering' ? 'animate-prize-slide-down' : 'opacity-0'}`}>
+          {/* Rank Badge - Viewport scaled */}
+          <div className={`mb-[1.5vh] ${prizeAnimationPhase !== 'entering' ? 'animate-prize-slide-down' : 'opacity-0'}`}>
             <div className="relative inline-block">
               {/* Glow behind badge */}
               <div className="absolute inset-0 blur-2xl bg-yellow-500/40 rounded-3xl scale-110" />
-              <div className="relative px-12 py-4 bg-gradient-to-r from-amber-600/30 via-yellow-500/40 to-amber-600/30 border-3 border-yellow-400/80 rounded-2xl backdrop-blur-sm">
-                <h1 className="text-5xl md:text-6xl font-display font-black tracking-wider animate-text-shimmer">
+              <div className="relative px-[4vw] py-[1.5vh] bg-gradient-to-r from-amber-600/30 via-yellow-500/40 to-amber-600/30 border-3 border-yellow-400/80 rounded-2xl backdrop-blur-sm">
+                <h1 className="text-[4vw] font-display font-black tracking-wider animate-text-shimmer">
                   {prizeData?.title || `${currentPosition}TH PLACE`}
                 </h1>
               </div>
@@ -2393,28 +2393,28 @@ const MainStage = () => {
           </div>
           
           {/* Decorative line */}
-          <div className={`flex items-center justify-center gap-4 mb-8 ${prizeAnimationPhase !== 'entering' ? 'animate-fadeIn' : 'opacity-0'}`}>
-            <div className="h-0.5 w-24 bg-gradient-to-r from-transparent via-yellow-400 to-yellow-400" />
-            <span className="text-yellow-400 text-3xl">★</span>
-            <span className="text-yellow-400 font-display text-2xl font-bold tracking-[0.3em]">CONGRATULATIONS</span>
-            <span className="text-yellow-400 text-3xl">★</span>
-            <div className="h-0.5 w-24 bg-gradient-to-l from-transparent via-yellow-400 to-yellow-400" />
+          <div className={`flex items-center justify-center gap-[1vw] mb-[2vh] ${prizeAnimationPhase !== 'entering' ? 'animate-fadeIn' : 'opacity-0'}`}>
+            <div className="h-0.5 w-[6vw] bg-gradient-to-r from-transparent via-yellow-400 to-yellow-400" />
+            <span className="text-yellow-400 text-[2vw]">★</span>
+            <span className="text-yellow-400 font-display text-[1.5vw] font-bold tracking-[0.3em]">CONGRATULATIONS</span>
+            <span className="text-yellow-400 text-[2vw]">★</span>
+            <div className="h-0.5 w-[6vw] bg-gradient-to-l from-transparent via-yellow-400 to-yellow-400" />
           </div>
           
-          {/* Player Photo & Name - Larger with dramatic effects */}
+          {/* Player Photo & Name - Viewport scaled */}
           {currentPlayer && (
-            <div className={`mb-10 ${prizeAnimationPhase === 'name' || prizeAnimationPhase === 'box' || prizeAnimationPhase === 'revealed' ? 'animate-prize-zoom-in' : 'opacity-0'}`}>
+            <div className={`mb-[2vh] ${prizeAnimationPhase === 'name' || prizeAnimationPhase === 'box' || prizeAnimationPhase === 'revealed' ? 'animate-prize-zoom-in' : 'opacity-0'}`}>
               {/* Photo with spotlight ring */}
-              <div className="relative inline-block mb-8">
+              <div className="relative inline-block mb-[1.5vh]">
                 {/* Animated rings */}
-                <div className="absolute inset-0 -m-4 rounded-full border-2 border-yellow-400/30 animate-ping" style={{ animationDuration: '2s' }} />
-                <div className="absolute inset-0 -m-8 rounded-full border border-yellow-400/20 animate-ping" style={{ animationDuration: '3s' }} />
+                <div className="absolute inset-0 -m-[0.8vw] rounded-full border-2 border-yellow-400/30 animate-ping" style={{ animationDuration: '2s' }} />
+                <div className="absolute inset-0 -m-[1.5vw] rounded-full border border-yellow-400/20 animate-ping" style={{ animationDuration: '3s' }} />
                 
                 {/* Glow */}
-                <div className="absolute inset-0 -m-2 rounded-full bg-yellow-400/30 blur-xl" />
+                <div className="absolute inset-0 -m-[0.5vw] rounded-full bg-yellow-400/30 blur-xl" />
                 
                 {/* Photo */}
-                <div className="relative w-48 h-48 rounded-full overflow-hidden border-4 border-yellow-400 shadow-[0_0_40px_rgba(251,191,36,0.5)]">
+                <div className="relative w-[12vw] h-[12vw] rounded-full overflow-hidden border-4 border-yellow-400 shadow-[0_0_40px_rgba(251,191,36,0.5)]">
                   {currentPlayer.photo_url ? (
                     <img 
                       src={currentPlayer.photo_url} 
@@ -2423,7 +2423,7 @@ const MainStage = () => {
                     />
                   ) : (
                     <div 
-                      className="w-full h-full flex items-center justify-center text-7xl font-display font-black"
+                      className="w-full h-full flex items-center justify-center text-[4vw] font-display font-black"
                       style={{ backgroundColor: currentPlayer.avatar_color || '#6366f1' }}
                     >
                       {currentPlayer.name.charAt(0)}
@@ -2434,81 +2434,81 @@ const MainStage = () => {
               
               {/* Name - smaller than prize */}
               <div className="relative">
-                <h2 className="text-4xl md:text-5xl font-display font-black text-white tracking-wide drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                <h2 className="text-[3vw] font-display font-black text-white tracking-wide drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
                   {currentPlayer.name}
                 </h2>
               </div>
             </div>
           )}
           
-          {/* Prize Box - More dramatic */}
-          <div className={`mb-10 ${prizeAnimationPhase === 'box' || prizeAnimationPhase === 'revealed' ? 'opacity-100' : 'opacity-0'} transition-opacity duration-500`}>
+          {/* Prize Box - Viewport scaled */}
+          <div className={`mb-[2vh] ${prizeAnimationPhase === 'box' || prizeAnimationPhase === 'revealed' ? 'opacity-100' : 'opacity-0'} transition-opacity duration-500`}>
             {prizeAnimationPhase === 'box' && !prizeRevealed ? (
-              // Mystery Box - Larger, more suspenseful
+              // Mystery Box - Viewport scaled
               <div className="relative inline-block">
                 {/* Pulsing glow behind box */}
-                <div className="absolute inset-0 -m-4 bg-purple-500/30 blur-2xl rounded-3xl animate-pulse" />
+                <div className="absolute inset-0 -m-[1vw] bg-purple-500/30 blur-2xl rounded-3xl animate-pulse" />
                 
-                <div className="relative px-20 py-10 bg-gradient-to-br from-purple-900/60 via-pink-900/40 to-purple-900/60 border-4 border-dashed border-purple-400/80 rounded-3xl animate-prize-box-shake backdrop-blur-sm">
-                  <p className="text-8xl mb-4 animate-bounce" style={{ animationDuration: '1s' }}>🎁</p>
-                  <p className="text-purple-200 font-display text-3xl font-black tracking-wider">
+                <div className="relative px-[5vw] py-[3vh] bg-gradient-to-br from-purple-900/60 via-pink-900/40 to-purple-900/60 border-4 border-dashed border-purple-400/80 rounded-3xl animate-prize-box-shake backdrop-blur-sm">
+                  <p className="text-[5vw] mb-[1vh] animate-bounce" style={{ animationDuration: '1s' }}>🎁</p>
+                  <p className="text-purple-200 font-display text-[2vw] font-black tracking-wider">
                     MYSTERY PRIZE
                   </p>
-                  <p className="text-purple-400/60 font-mono text-sm mt-2 animate-pulse">
+                  <p className="text-purple-400/60 font-mono text-[0.9vw] mt-[0.5vh] animate-pulse">
                     AWAITING REVEAL...
                   </p>
                 </div>
               </div>
             ) : prizeRevealed || prizeAnimationPhase === 'revealed' ? (
-              // Revealed Prize - Explosive reveal
+              // Revealed Prize - Viewport scaled
               <div className="relative inline-block animate-prize-reveal">
                 {/* Golden glow explosion */}
-                <div className="absolute inset-0 -m-12 bg-yellow-400/50 blur-3xl rounded-3xl animate-pulse" />
+                <div className="absolute inset-0 -m-[3vw] bg-yellow-400/50 blur-3xl rounded-3xl animate-pulse" />
                 
-                <div className="relative w-full max-w-5xl mx-auto px-10 py-8 bg-gradient-to-br from-yellow-600/50 via-amber-500/60 to-yellow-600/50 border-4 border-yellow-400 rounded-3xl shadow-[0_0_100px_rgba(251,191,36,0.7)] backdrop-blur-sm">
+                <div className="relative w-full max-w-[80vw] mx-auto px-[3vw] py-[2vh] bg-gradient-to-br from-yellow-600/50 via-amber-500/60 to-yellow-600/50 border-4 border-yellow-400 rounded-3xl shadow-[0_0_100px_rgba(251,191,36,0.7)] backdrop-blur-sm">
                   {/* Prize icon with glow */}
-                  <div className="flex justify-center mb-4">
+                  <div className="flex justify-center mb-[1vh]">
                     <div className="relative">
-                      <div className="absolute inset-0 -m-4 bg-yellow-400/60 blur-2xl rounded-full animate-pulse" />
-                      <p className="relative text-7xl animate-bounce" style={{ animationDuration: '0.5s' }}>🏆</p>
+                      <div className="absolute inset-0 -m-[1vw] bg-yellow-400/60 blur-2xl rounded-full animate-pulse" />
+                      <p className="relative text-[4vw] animate-bounce" style={{ animationDuration: '0.5s' }}>🏆</p>
                     </div>
                   </div>
                   
                   {/* Prize name - ULTIMATE SIZE */}
-                  <p className="text-yellow-100 font-display text-5xl md:text-6xl lg:text-7xl font-black tracking-wide drop-shadow-[0_0_40px_rgba(251,191,36,0.9)] text-center leading-tight">
+                  <p className="text-yellow-100 font-display text-[4.5vw] font-black tracking-wide drop-shadow-[0_0_40px_rgba(251,191,36,0.9)] text-center leading-tight">
                     {prizeData?.prize || 'PRIZE'}
                   </p>
                   
                   {/* Description */}
-                  <p className="text-yellow-300/90 font-mono text-2xl mt-4 tracking-widest text-center">
+                  <p className="text-yellow-300/90 font-mono text-[1.3vw] mt-[1vh] tracking-widest text-center">
                     {prizeData?.description || 'Congratulations!'}
                   </p>
                   
                   {/* Decorative lines */}
-                  <div className="flex items-center justify-center gap-4 mt-5">
-                    <div className="w-28 h-1 bg-gradient-to-r from-transparent to-yellow-400 rounded-full" />
-                    <span className="text-yellow-400 text-3xl">✦</span>
-                    <div className="w-28 h-1 bg-gradient-to-l from-transparent to-yellow-400 rounded-full" />
+                  <div className="flex items-center justify-center gap-[1vw] mt-[1vh]">
+                    <div className="w-[8vw] h-1 bg-gradient-to-r from-transparent to-yellow-400 rounded-full" />
+                    <span className="text-yellow-400 text-[2vw]">✦</span>
+                    <div className="w-[8vw] h-1 bg-gradient-to-l from-transparent to-yellow-400 rounded-full" />
                   </div>
                 </div>
               </div>
             ) : null}
           </div>
           
-          {/* Status text - More subtle */}
+          {/* Status text - Viewport scaled */}
           {prizeAnimationPhase === 'box' && (
             <div className="animate-fadeIn text-center">
-              <p className={`font-display text-2xl font-bold tracking-[0.2em] transition-colors duration-500 ${
+              <p className={`font-display text-[1.5vw] font-bold tracking-[0.2em] transition-colors duration-500 ${
                 prizeRevealed ? 'text-yellow-400' : 'text-cyan-400/80'
               }`}>
                 {!prizeRevealed ? 'REVEAL THE PRIZE' : isLastPrize ? (roundNumber === 3 ? 'CROWN THE CHAMPIONS' : 'VIEW STANDINGS') : 'NEXT WINNER'}
               </p>
               
-              <div className="flex items-center justify-center gap-2 mt-4">
+              <div className="flex items-center justify-center gap-[0.5vw] mt-[1vh]">
                 {eliminatedPositions.map((_, idx) => (
                   <div
                     key={idx}
-                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                    className={`w-[0.8vw] h-[0.8vw] rounded-full transition-all duration-300 ${
                       idx < prizeRevealIndex ? 'bg-yellow-400' : 
                       idx === prizeRevealIndex ? (prizeRevealed ? 'bg-yellow-400 scale-125' : 'bg-purple-400 animate-pulse') : 
                       'bg-slate-600'
@@ -2520,11 +2520,11 @@ const MainStage = () => {
           )}
         </div>
         
-        {/* Corner decorations */}
-        <div className="absolute top-8 left-8 w-24 h-24 border-l-2 border-t-2 border-yellow-400/30 rounded-tl-3xl" />
-        <div className="absolute top-8 right-8 w-24 h-24 border-r-2 border-t-2 border-yellow-400/30 rounded-tr-3xl" />
-        <div className="absolute bottom-8 left-8 w-24 h-24 border-l-2 border-b-2 border-yellow-400/30 rounded-bl-3xl" />
-        <div className="absolute bottom-8 right-8 w-24 h-24 border-r-2 border-b-2 border-yellow-400/30 rounded-br-3xl" />
+        {/* Corner decorations - Viewport scaled */}
+        <div className="absolute top-[2vh] left-[2vw] w-[6vw] h-[6vh] border-l-2 border-t-2 border-yellow-400/30 rounded-tl-3xl" />
+        <div className="absolute top-[2vh] right-[2vw] w-[6vw] h-[6vh] border-r-2 border-t-2 border-yellow-400/30 rounded-tr-3xl" />
+        <div className="absolute bottom-[2vh] left-[2vw] w-[6vw] h-[6vh] border-l-2 border-b-2 border-yellow-400/30 rounded-bl-3xl" />
+        <div className="absolute bottom-[2vh] right-[2vw] w-[6vw] h-[6vh] border-r-2 border-b-2 border-yellow-400/30 rounded-br-3xl" />
       </div>
     );
   }
