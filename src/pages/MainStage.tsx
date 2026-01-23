@@ -939,17 +939,27 @@ const MainStage = () => {
     const stageScores = scores.filter(s => s.stage === currentStage);
     const activePlayers = players.filter(p => !p.is_spectator && !p.is_kicked && !p.is_eliminated);
     
-    // Get players with their scores
-    const playersWithScores: PlayerWithProgress[] = activePlayers.map(player => {
+    // Get players with their scores and time_taken
+    const playersWithScores: (PlayerWithProgress & { timeTaken?: number })[] = activePlayers.map(player => {
       const scoreRecord = stageScores.find(s => s.player_id === player.id);
-      return { ...player, score: scoreRecord?.score ?? Infinity };
+      return { 
+        ...player, 
+        score: scoreRecord?.score ?? Infinity,
+        timeTaken: scoreRecord?.time_taken ?? Infinity 
+      };
     });
     
     // Sort based on stage type:
     // Stage 1 & 3 (time-based): Lower time = BETTER, so sort ascending (best first)
     // Stage 2 (RPS points): Higher score = BETTER, so sort descending (best first)
+    //                       If scores are equal, lower time wins (tiebreaker)
     if (currentStage === 2) {
-      playersWithScores.sort((a, b) => (b.score || 0) - (a.score || 0)); // Higher score first
+      playersWithScores.sort((a, b) => {
+        const scoreDiff = (b.score || 0) - (a.score || 0);
+        if (scoreDiff !== 0) return scoreDiff; // Higher score first
+        // Tiebreaker: lower time wins
+        return (a.timeTaken || Infinity) - (b.timeTaken || Infinity);
+      });
     } else {
       playersWithScores.sort((a, b) => (a.score || Infinity) - (b.score || Infinity)); // Lower time first (best)
     }
@@ -3224,56 +3234,13 @@ const MainStage = () => {
           </div>
         )}
         
-        {/* Shutdown complete screen - CINEMATIC ENDING */}
+        {/* Shutdown complete screen */}
         {isShutdownComplete && (
           <div className="absolute inset-0 flex items-center justify-center bg-black z-50">
-            {/* Scan line effect */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30">
-              {Array.from({ length: 100 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="absolute w-full h-[1px] bg-slate-800"
-                  style={{ top: `${i}%` }}
-                />
-              ))}
-            </div>
-            
-            <div className="text-center animate-fadeIn relative z-10">
-              {/* Pulsing red dot - like a power LED */}
-              <div className="relative mx-auto mb-10">
-                <div className="w-3 h-3 rounded-full bg-red-600 mx-auto animate-pulse" />
-                <div className="absolute inset-0 w-3 h-3 rounded-full bg-red-500 mx-auto blur-md animate-pulse" />
-              </div>
-              
-              {/* Shutdown text with glitch effect */}
-              <div className="relative">
-                <p className="text-slate-500 font-mono text-2xl tracking-[0.3em] mb-4">
-                  SYSTEM SHUTDOWN
-                </p>
-                <p className="text-slate-600 font-mono text-lg tracking-widest">
-                  COMPLETE
-                </p>
-              </div>
-              
-              {/* Separator line */}
-              <div className="w-48 h-[1px] bg-gradient-to-r from-transparent via-slate-700 to-transparent mx-auto my-8" />
-              
-              {/* Protocol info */}
-              <p className="text-slate-700 font-mono text-sm tracking-widest">
-                CYBER GENESIS PROTOCOL v1.0
-              </p>
-              <p className="text-slate-800 font-mono text-xs mt-2 tracking-wider">
-                SESSION TERMINATED
-              </p>
-              
-              {/* Bottom decoration */}
-              <div className="mt-12 flex items-center justify-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-slate-800" />
-                <div className="w-2 h-2 rounded-full bg-slate-800" />
-                <div className="w-2 h-2 rounded-full bg-red-900/50 animate-pulse" />
-                <div className="w-2 h-2 rounded-full bg-slate-800" />
-                <div className="w-2 h-2 rounded-full bg-slate-800" />
-              </div>
+            <div className="text-center animate-fadeIn">
+              <div className="w-4 h-4 rounded-full bg-red-500/50 mx-auto mb-8" />
+              <p className="text-slate-600 font-mono text-lg tracking-widest">SYSTEM SHUTDOWN COMPLETE</p>
+              <p className="text-slate-700 font-mono text-sm mt-4">CYBER GENESIS PROTOCOL v1.0</p>
             </div>
           </div>
         )}
