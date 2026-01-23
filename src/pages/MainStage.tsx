@@ -1459,18 +1459,18 @@ const MainStage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center cyber-bg">
-        <Loader2 className="w-16 h-16 text-cyan-400 animate-spin" />
+      <div className="h-screen w-screen flex items-center justify-center cyber-bg overflow-hidden">
+        <Loader2 className="w-[5vw] h-[5vw] text-cyan-400 animate-spin" />
       </div>
     );
   }
 
   if (!gameSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 cyber-bg">
+      <div className="h-screen w-screen flex items-center justify-center p-[2vw] cyber-bg overflow-hidden">
         <div className="text-center">
-          <XCircle className="w-24 h-24 text-red-400 mx-auto mb-4" />
-          <h1 className="text-4xl font-bold text-white font-display">PROTOCOL NOT FOUND</h1>
+          <XCircle className="w-[6vw] h-[6vw] text-red-400 mx-auto mb-[2vh]" />
+          <h1 className="text-[3vw] font-bold text-white font-display">PROTOCOL NOT FOUND</h1>
         </div>
       </div>
     );
@@ -1485,7 +1485,7 @@ const MainStage = () => {
     const showAvatar = 'showAvatar' in currentSlide && currentSlide.showAvatar;
     
     return (
-      <div className="min-h-screen flex flex-col cyber-bg relative overflow-hidden">
+      <div className="h-screen w-screen flex flex-col cyber-bg relative overflow-hidden">
         <div className="grid-overlay" />
         <div className="scanline" />
         
@@ -1652,43 +1652,43 @@ const MainStage = () => {
     const msg = roundMessages[roundNumber as 2 | 3] || roundMessages[2];
     
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center cyber-bg relative overflow-hidden p-10">
+      <div className="h-screen w-screen flex flex-col items-center justify-center cyber-bg relative overflow-hidden p-[2vw]">
         <div className="grid-overlay" />
         <div className="scanline" />
         
         {/* Ambient glow */}
-        <div className="fixed top-1/4 left-1/4 w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[150px] animate-pulse" />
-        <div className="fixed bottom-1/4 right-1/4 w-[500px] h-[500px] bg-cyan-500/15 rounded-full blur-[150px] animate-pulse" />
+        <div className="fixed top-1/4 left-1/4 w-[25vw] h-[25vw] bg-purple-500/20 rounded-full blur-[100px] animate-pulse" />
+        <div className="fixed bottom-1/4 right-1/4 w-[25vw] h-[25vw] bg-cyan-500/15 rounded-full blur-[100px] animate-pulse" />
         
         {/* 3D Logo */}
-        <div className="relative w-[300px] h-[300px] mb-10">
+        <div className="relative w-[15vw] h-[15vw] mb-[2vh]">
           <BrandLogo3D />
         </div>
         
         {/* Round intro content */}
-        <div className="relative z-10 text-center max-w-5xl animate-fadeIn">
-          <p className="text-cyan-400 font-mono text-2xl mb-4 tracking-widest font-bold">ROUND 0{roundNumber}</p>
-          <h1 className="text-6xl md:text-8xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-cyan-400 mb-6">
+        <div className="relative z-10 text-center max-w-[80vw] animate-fadeIn">
+          <p className="text-cyan-400 font-mono text-[1.5vw] mb-[1vh] tracking-widest font-bold">ROUND 0{roundNumber}</p>
+          <h1 className="text-[5vw] font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-cyan-400 mb-[1.5vh]">
             {msg.title}
           </h1>
-          <p className="text-4xl text-white font-display font-bold mb-8">{msg.subtitle}</p>
-          <p className="text-slate-300 font-mono text-2xl mb-10 font-bold">{msg.description}</p>
+          <p className="text-[2.5vw] text-white font-display font-bold mb-[2vh]">{msg.subtitle}</p>
+          <p className="text-slate-300 font-mono text-[1.3vw] mb-[2vh] font-bold">{msg.description}</p>
           
-          <div className="p-6 rounded-2xl bg-red-500/10 border-2 border-red-500/40 mb-10">
-            <p className="text-red-400 font-display text-3xl font-black">⚠ {msg.warning}</p>
+          <div className="p-[1.5vw] rounded-2xl bg-red-500/10 border-2 border-red-500/40 mb-[2vh]">
+            <p className="text-red-400 font-display text-[1.8vw] font-black">⚠ {msg.warning}</p>
           </div>
           
-          <div className="flex items-center justify-center gap-6 text-slate-400 font-mono text-xl mb-10 font-bold">
+          <div className="flex items-center justify-center gap-[1.5vw] text-slate-400 font-mono text-[1.2vw] mb-[2vh] font-bold">
             <span>EXPECTED CANDIDATES: {expectedPlayers}</span>
-            <span className="w-2 h-2 bg-cyan-500 rounded-full" />
+            <span className="w-[0.5vw] h-[0.5vw] bg-cyan-500 rounded-full" />
             <span>AWAITING REGISTRATION</span>
           </div>
           
           <button
             onClick={() => setPhase('lobby')}
-            className="cyber-btn px-16 py-6 rounded-2xl flex items-center gap-6 mx-auto text-3xl font-black"
+            className="cyber-btn px-[3vw] py-[1.5vh] rounded-2xl flex items-center gap-[1vw] mx-auto text-[1.5vw] font-black"
           >
-            <Play className="w-10 h-10" />
+            <Play className="w-[2vw] h-[2vw]" />
             <span className="font-display">BEGIN REGISTRATION</span>
           </button>
         </div>
@@ -1704,33 +1704,33 @@ const MainStage = () => {
     const survivorCount = roundNumber === 1 ? 6 : roundNumber === 2 ? 3 : 1;
     
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center cyber-bg relative overflow-hidden p-10">
+      <div className="h-screen w-screen flex flex-col items-center justify-center cyber-bg relative overflow-hidden p-[2vw]">
         <div className="grid-overlay" />
         <div className="scanline" />
         
         {/* Ambient glow */}
-        <div className="fixed top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/20 rounded-full blur-[150px] animate-pulse" />
-        <div className="fixed bottom-1/4 right-1/4 w-[500px] h-[500px] bg-purple-500/15 rounded-full blur-[150px] animate-pulse" />
+        <div className="fixed top-1/4 left-1/4 w-[25vw] h-[25vw] bg-emerald-500/20 rounded-full blur-[100px] animate-pulse" />
+        <div className="fixed bottom-1/4 right-1/4 w-[25vw] h-[25vw] bg-purple-500/15 rounded-full blur-[100px] animate-pulse" />
         
         {/* 3D Logo */}
-        <div className="relative w-[280px] h-[280px] mb-10">
+        <div className="relative w-[15vw] h-[15vw] mb-[3vh]">
           <BrandLogo3D />
         </div>
         
-        <div className="relative z-10 text-center max-w-5xl animate-fadeIn">
-          <p className="text-emerald-400 font-mono text-2xl mb-4 tracking-widest font-bold">SESSION COMPLETE</p>
-          <h1 className="text-6xl md:text-8xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-cyan-500 to-purple-400 mb-6">
+        <div className="relative z-10 text-center max-w-[80vw] animate-fadeIn">
+          <p className="text-emerald-400 font-mono text-[1.5vw] mb-[1vh] tracking-widest font-bold">SESSION COMPLETE</p>
+          <h1 className="text-[5vw] font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-cyan-500 to-purple-400 mb-[2vh]">
             ROUND 0{roundNumber} COMPLETE
           </h1>
-          <p className="text-4xl text-white font-display font-bold mb-10">
+          <p className="text-[2.5vw] text-white font-display font-bold mb-[3vh]">
             {survivorCount} SURVIVOR{survivorCount > 1 ? 'S' : ''} ADVANCE TO ROUND 0{roundNumber + 1}
           </p>
           
           <button
             onClick={() => navigate('/')}
-            className="cyber-btn px-16 py-6 rounded-2xl flex items-center gap-6 mx-auto text-2xl font-black"
+            className="cyber-btn px-[3vw] py-[1.5vh] rounded-2xl flex items-center gap-[1vw] mx-auto text-[1.5vw] font-black"
           >
-            <Home className="w-8 h-8" />
+            <Home className="w-[2vw] h-[2vw]" />
             <span className="font-display">RETURN TO ADMIN</span>
           </button>
         </div>
@@ -1748,23 +1748,23 @@ const MainStage = () => {
     const playerLabel = 'CANDIDATES';
     
     return (
-      <div className="min-h-screen p-10 cyber-bg relative overflow-hidden">
+      <div className="h-screen w-screen p-[2vw] cyber-bg relative overflow-hidden">
         <div className="grid-overlay" />
         
         {/* 3D Brand Logo - Fixed left side, vertically centered */}
-        <div className="fixed left-0 top-0 bottom-0 w-[420px] z-10 flex items-center justify-center">
+        <div className="fixed left-0 top-0 bottom-0 w-[22vw] z-10 flex items-center justify-center">
           <div className="relative flex flex-col items-center">
             {/* Ambient glow */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-              <div className="w-96 h-96 bg-gradient-to-r from-pink-500/30 via-purple-500/20 to-blue-500/30 rounded-full blur-[80px] animate-pulse" />
+              <div className="w-[18vw] h-[18vw] bg-gradient-to-r from-pink-500/30 via-purple-500/20 to-blue-500/30 rounded-full blur-[60px] animate-pulse" />
             </div>
             {/* 3D Logo - larger size */}
-            <div className="relative w-[380px] h-[380px]">
+            <div className="relative w-[18vw] h-[18vw]">
               <BrandLogo3D />
             </div>
-            <div className="mt-6 flex items-center gap-3 px-6 py-2 rounded-full bg-slate-900/90 backdrop-blur-sm border-2 border-cyan-500/50">
-              <span className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse" />
-              <span className="text-cyan-400 text-lg font-mono font-black tracking-widest">ROUND 0{roundNumber}</span>
+            <div className="mt-[1vh] flex items-center gap-[0.5vw] px-[1vw] py-[0.5vh] rounded-full bg-slate-900/90 backdrop-blur-sm border-2 border-cyan-500/50">
+              <span className="w-[0.6vw] h-[0.6vw] bg-cyan-400 rounded-full animate-pulse" />
+              <span className="text-cyan-400 text-[1vw] font-mono font-black tracking-widest">ROUND 0{roundNumber}</span>
             </div>
           </div>
         </div>
@@ -1936,7 +1936,7 @@ const MainStage = () => {
       const color = colorMap[info.color as keyof typeof colorMap];
       
       return (
-        <div className="min-h-screen cyber-bg relative overflow-hidden flex items-center justify-center p-10">
+        <div className="h-screen w-screen cyber-bg relative overflow-hidden flex items-center justify-center p-[2vw]">
           <div className="grid-overlay" />
           <div className="scanline" />
           
@@ -2209,7 +2209,7 @@ const MainStage = () => {
     const isLastPrize = prizeRevealIndex >= eliminatedPositions.length - 1;
 
     return (
-      <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center bg-black">
+      <div className="h-screen w-screen relative overflow-hidden flex flex-col items-center justify-center bg-black">
         {/* Deep space background */}
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-purple-950/30 to-slate-950" />
         
@@ -2461,7 +2461,7 @@ const MainStage = () => {
     const survivorCount = totalPlayers - eliminateCount;
     
     return (
-      <div className="min-h-screen cyber-bg relative overflow-hidden flex flex-col p-8">
+      <div className="h-screen w-screen cyber-bg relative overflow-hidden flex flex-col p-[1.5vw]">
         <div className="grid-overlay" />
         <div className="scanline" />
         
@@ -2612,7 +2612,7 @@ const MainStage = () => {
   
   if (phase === 'champion') {
     return (
-      <div className="min-h-screen relative overflow-hidden flex items-center justify-center bg-black">
+      <div className="h-screen w-screen relative overflow-hidden flex items-center justify-center bg-black">
         {/* Deep background - intensifies with reveals */}
         <div className={`absolute inset-0 transition-all duration-1000 ${
           championRevealStage === 'first' 
@@ -3098,7 +3098,7 @@ const MainStage = () => {
     const isShutdownComplete = closureStep >= CLOSURE_SLIDES.length; // Extra step after all slides
     
     return (
-      <div className={`min-h-screen relative overflow-hidden flex flex-col items-center justify-center transition-all duration-2000 ${
+      <div className={`h-screen w-screen relative overflow-hidden flex flex-col items-center justify-center transition-all duration-2000 ${
         isFinalGoodbye 
           ? 'bg-black' 
           : isTerminatorMode 
@@ -3275,7 +3275,7 @@ const MainStage = () => {
   // ============================================
   if (phase === 'trial-countdown' && countdown !== null) {
     return (
-      <div className="min-h-screen flex items-center justify-center cyber-bg relative overflow-hidden">
+      <div className="h-screen w-screen flex items-center justify-center cyber-bg relative overflow-hidden">
         <div className="grid-overlay" />
         <div className="scanline" />
         
@@ -3305,7 +3305,7 @@ const MainStage = () => {
     const info = ROUND_INSTRUCTIONS[currentStage as keyof typeof ROUND_INSTRUCTIONS];
 
     return (
-      <div className="min-h-screen p-8 cyber-bg relative overflow-hidden">
+      <div className="h-screen w-screen p-[1.5vw] cyber-bg relative overflow-hidden">
         <div className="grid-overlay" />
         
         {/* 3D Brand Logo - Fixed left side, vertically centered */}
@@ -4018,8 +4018,8 @@ const MainStage = () => {
 
   // Default fallback
   return (
-    <div className="min-h-screen flex items-center justify-center cyber-bg">
-      <Loader2 className="w-16 h-16 text-cyan-400 animate-spin" />
+    <div className="h-screen w-screen flex items-center justify-center cyber-bg overflow-hidden">
+      <Loader2 className="w-[5vw] h-[5vw] text-cyan-400 animate-spin" />
     </div>
   );
 };
