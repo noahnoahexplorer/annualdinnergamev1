@@ -2476,7 +2476,7 @@ const MainStage = () => {
               SURVIVORS ({survivorCount})
               <span className="w-16 h-1 bg-emerald-500/50" />
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 max-w-7xl mx-auto">
+            <div className="flex flex-wrap justify-center gap-6 max-w-7xl mx-auto">
               {eliminationRankings.slice(0, survivorCount).map((player, idx) => {
                 const rank = idx + 1;
                 const isRevealed = revealedRank >= (idx + 1);
@@ -2485,7 +2485,7 @@ const MainStage = () => {
                 return (
                   <div
                     key={player.id}
-                    className={`p-5 rounded-2xl text-center transition-all duration-500 ${
+                    className={`w-40 p-5 rounded-2xl text-center transition-all duration-500 ${
                       isRevealed 
                         ? isTop
                           ? 'bg-yellow-500/20 border-4 border-yellow-500/60 opacity-100 scale-100'
@@ -2518,7 +2518,7 @@ const MainStage = () => {
               <Skull className="w-10 h-10" /> ELIMINATED ({eliminateCount})
               <span className="w-16 h-1 bg-red-500/50" />
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
+            <div className="flex flex-wrap justify-center gap-6 max-w-5xl mx-auto">
               {eliminationRankings.slice(-eliminateCount).map((player, idx) => {
                 const rank = survivorCount + idx + 1;
                 const isRevealed = revealedRank >= (survivorCount + idx + 1);
@@ -2526,7 +2526,7 @@ const MainStage = () => {
                 return (
                   <div
                     key={player.id}
-                    className={`p-5 rounded-2xl text-center transition-all duration-500 ${
+                    className={`w-40 p-5 rounded-2xl text-center transition-all duration-500 ${
                       isRevealed 
                         ? 'bg-red-500/20 border-4 border-red-500/60 opacity-100 scale-100'
                         : 'opacity-0 scale-90'
