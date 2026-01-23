@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Flag, Zap, Trophy } from 'lucide-react';
+import { Flag, Zap, Trophy, Loader2 } from 'lucide-react';
 import { supabase, TABLES, type Player, type GameSession } from '../lib/supabase';
 
 type Props = {
@@ -17,9 +17,41 @@ const TapToRun = ({ player, gameSession }: Props) => {
   const [finished, setFinished] = useState(false);
   const [finalTime, setFinalTime] = useState<number | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [isCheckingScore, setIsCheckingScore] = useState(true);
+  const [existingScore, setExistingScore] = useState<number | null>(null);
   const progressUpdateRef = useRef<number | null>(null);
   const hasCompleted = useRef(false);
   const isActive = gameSession.current_stage === 1;
+
+  // Check for existing score on mount
+  useEffect(() => {
+    const checkExistingScore = async () => {
+      try {
+        const { data } = await supabase
+          .from(TABLES.stageScores)
+          .select('score')
+          .eq('player_id', player.id)
+          .eq('game_session_id', player.game_session_id)
+          .eq('stage', 1)
+          .single();
+        
+        if (data && data.score !== null) {
+          // Player already has a score - show result
+          setExistingScore(data.score);
+          setFinished(true);
+          setFinalTime(data.score);
+          setPosition(FINISH_LINE);
+          hasCompleted.current = true;
+        }
+      } catch {
+        // No existing score - player can play
+      } finally {
+        setIsCheckingScore(false);
+      }
+    };
+
+    checkExistingScore();
+  }, [player.id, player.game_session_id]);
 
   const updateProgress = useCallback(async (progress: number, elapsed: number, status: 'waiting' | 'playing' | 'finished') => {
     try {
@@ -107,6 +139,16 @@ const TapToRun = ({ player, gameSession }: Props) => {
 
   const progressPercent = (position / FINISH_LINE) * 100;
 
+  // Show loading while checking for existing score
+  if (isCheckingScore) {
+    return (
+      <div className="w-full min-h-screen flex flex-col items-center justify-center p-6">
+        <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mb-4" />
+        <p className="text-slate-400 font-mono">LOADING...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full min-h-screen flex flex-col p-6">
       <div className="text-center mb-8">
@@ -182,11 +224,18 @@ const TapToRun = ({ player, gameSession }: Props) => {
               <Trophy className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
               <p className="text-emerald-400 text-2xl font-bold mb-2 font-display">PROTOCOL COMPLETE</p>
               <p className="text-white text-4xl font-bold font-mono">{finalTime?.toFixed(2)}s</p>
-              <div className="mt-4 flex items-center justify-center gap-4 text-slate-400">
-                <span className="font-mono">{taps} TAPS</span>
-                <span>•</span>
-                <span className="font-mono">{taps && finalTime ? (taps / finalTime).toFixed(1) : 0} TPS</span>
-              </div>
+              {existingScore !== null ? (
+                <div className="mt-4 text-slate-400">
+                  <p className="font-mono text-sm">RESULT SUBMITTED</p>
+                  <p className="font-mono text-xs mt-1 text-slate-500">Awaiting next phase...</p>
+                </div>
+              ) : (
+                <div className="mt-4 flex items-center justify-center gap-4 text-slate-400">
+                  <span className="font-mono">{taps} TAPS</span>
+                  <span>•</span>
+                  <span className="font-mono">{taps && finalTime ? (taps / finalTime).toFixed(1) : 0} TPS</span>
+                </div>
+              )}
             </div>
           </div>
         ) : isActive ? (
