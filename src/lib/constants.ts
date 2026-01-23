@@ -2,6 +2,14 @@
 // CYBER GENESIS - THEME CONSTANTS
 // ============================================
 
+// Champion Prize Banner Images (for Round 3 reveal)
+// Add your banner images to the public folder with these filenames
+export const CHAMPION_BANNERS: Record<number, string> = {
+  1: '/prize-1st.png',  // 1st place banner (e.g., Europe)
+  2: '/prize-2nd.png',  // 2nd place banner (e.g., Japan)
+  3: '/prize-3rd.png',  // 3rd place banner (e.g., Maldives)
+};
+
 // GENESIS Avatar States
 export enum GenesisState {
   SCANNING = 'SCANNING',
