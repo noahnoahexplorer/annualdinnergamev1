@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Users, Loader2, Trophy, XCircle, Crown, Timer, Target, Flag, Radio, Play, UserX, Skull, ChevronRight, SkipForward, Home } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase, TABLES, type Player, type GameSession, type StageScore, type PlayerProgress, type GameEvent } from '../lib/supabase';
-import { STAGE_CODENAMES, ELIMINATIONS, GenesisState, ROUND_PRIZES, getEliminatedPositions, CHAMPION_BANNERS } from '../lib/constants';
+import { STAGE_CODENAMES, ELIMINATIONS, GenesisState, ROUND_PRIZES, getEliminatedPositions } from '../lib/constants';
 import { generateSpeech } from '../lib/textToSpeech';
 import { BrandLogo3D } from '../components/BrandLogo3D';
 
@@ -2951,31 +2951,26 @@ const MainStage = () => {
                         {thirdPlace?.name || 'BRONZE CHAMPION'}
                       </h2>
                       
-                      {/* Prize Banner Image Display - CENTERED FULL WIDTH */}
-                      <div className="fixed bottom-[15vh] left-1/2 -translate-x-1/2 w-[90vw] z-20">
+                      {/* ULTRA GLOWING Prize Display - MAXIMUM IMPACT */}
+                      <div className="relative w-full max-w-5xl mx-auto px-4">
                         <div className="absolute inset-0 -m-10 bg-amber-500/50 blur-3xl rounded-3xl animate-pulse" />
-                        <div className="relative w-full overflow-hidden rounded-2xl border-4 border-amber-400 shadow-[0_0_100px_rgba(245,158,11,0.7)]">
-                          <img 
-                            src={CHAMPION_BANNERS[3]} 
-                            alt="3rd Place Prize" 
-                            className="w-full h-auto object-contain"
-                            onError={(e) => {
-                              // Fallback to text display if image not found
-                              (e.target as HTMLImageElement).style.display = 'none';
-                              (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                            }}
-                          />
-                          {/* Fallback text display */}
-                          <div className="hidden px-10 py-8 bg-gradient-to-br from-amber-700/60 via-amber-600/70 to-amber-700/60">
-                            <div className="flex justify-center mb-4">
-                              <span className="text-7xl animate-bounce" style={{ animationDuration: '0.6s' }}>🥉</span>
-                            </div>
-                            <p className="text-amber-100 font-display text-5xl md:text-6xl font-black text-center leading-tight">
-                              {thirdPrize?.prize || 'Travel Voucher to Maldives'}
-                            </p>
-                            <p className="text-amber-300/90 font-mono text-2xl mt-4 text-center tracking-widest">
-                              {thirdPrize?.description || 'Package for 2 Pax'}
-                            </p>
+                        <div className="relative w-full px-10 py-8 bg-gradient-to-br from-amber-700/60 via-amber-600/70 to-amber-700/60 border-4 border-amber-400 rounded-3xl shadow-[0_0_100px_rgba(245,158,11,0.7)]">
+                          <div className="flex justify-center mb-4">
+                            <div className="relative">
+                              <div className="absolute inset-0 -m-4 bg-amber-400/60 blur-2xl rounded-full animate-pulse" />
+                              <span className="relative text-7xl animate-bounce" style={{ animationDuration: '0.6s' }}>🥉</span>
+                      </div>
+                          </div>
+                          <p className="text-amber-100 font-display text-5xl md:text-6xl lg:text-7xl font-black text-center leading-tight drop-shadow-[0_0_40px_rgba(245,158,11,0.9)]">
+                            {thirdPrize?.prize || 'Travel Voucher to Maldives'}
+                          </p>
+                          <p className="text-amber-300/90 font-mono text-2xl mt-4 text-center tracking-widest">
+                            {thirdPrize?.description || 'Package for 2 Pax'}
+                          </p>
+                          <div className="flex items-center justify-center gap-4 mt-5">
+                            <div className="w-24 h-1 bg-gradient-to-r from-transparent to-amber-400 rounded-full" />
+                            <span className="text-amber-400 text-4xl">🏆</span>
+                            <div className="w-24 h-1 bg-gradient-to-l from-transparent to-amber-400 rounded-full" />
                           </div>
                         </div>
                       </div>
@@ -3024,34 +3019,29 @@ const MainStage = () => {
                         {secondPlace?.name || 'SILVER CHAMPION'}
                       </h2>
                       
-                      {/* Prize Banner Image Display - CENTERED FULL WIDTH */}
-                      <div className="fixed bottom-[15vh] left-1/2 -translate-x-1/2 w-[90vw] z-20">
+                      {/* ULTRA GLOWING Prize Display - MAXIMUM IMPACT */}
+                      <div className="relative w-full max-w-5xl mx-auto px-4">
                         <div className="absolute inset-0 -m-10 bg-slate-300/50 blur-3xl rounded-3xl animate-pulse" />
-                        <div className="relative w-full overflow-hidden rounded-2xl border-4 border-slate-300 shadow-[0_0_100px_rgba(192,192,192,0.7)]">
-                          <img 
-                            src={CHAMPION_BANNERS[2]} 
-                            alt="2nd Place Prize" 
-                            className="w-full h-auto object-contain"
-                            onError={(e) => {
-                              // Fallback to text display if image not found
-                              (e.target as HTMLImageElement).style.display = 'none';
-                              (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                            }}
-                          />
-                          {/* Fallback text display */}
-                          <div className="hidden px-10 py-8 bg-gradient-to-br from-slate-600/60 via-slate-500/70 to-slate-600/60">
-                            <div className="flex justify-center mb-4">
-                              <span className="text-7xl animate-bounce" style={{ animationDuration: '0.6s' }}>🥈</span>
-                            </div>
-                            <p className="text-slate-100 font-display text-5xl md:text-6xl font-black text-center leading-tight">
-                              {secondPrize?.prize || 'Travel Voucher to Japan'}
-                            </p>
-                            <p className="text-slate-300/90 font-mono text-2xl mt-4 text-center tracking-widest">
-                              {secondPrize?.description || 'Package for 2 Pax'}
-                            </p>
-                          </div>
-                        </div>
+                        <div className="relative w-full px-10 py-8 bg-gradient-to-br from-slate-600/60 via-slate-500/70 to-slate-600/60 border-4 border-slate-300 rounded-3xl shadow-[0_0_100px_rgba(192,192,192,0.7)]">
+                          <div className="flex justify-center mb-4">
+                            <div className="relative">
+                              <div className="absolute inset-0 -m-4 bg-slate-300/60 blur-2xl rounded-full animate-pulse" />
+                              <span className="relative text-7xl animate-bounce" style={{ animationDuration: '0.6s' }}>🥈</span>
                       </div>
+                    </div>
+                          <p className="text-slate-100 font-display text-5xl md:text-6xl lg:text-7xl font-black text-center leading-tight drop-shadow-[0_0_40px_rgba(192,192,192,0.9)]">
+                            {secondPrize?.prize || 'Travel Voucher to Japan'}
+                          </p>
+                          <p className="text-slate-300/90 font-mono text-2xl mt-4 text-center tracking-widest">
+                            {secondPrize?.description || 'Package for 2 Pax'}
+                          </p>
+                          <div className="flex items-center justify-center gap-4 mt-5">
+                            <div className="w-24 h-1 bg-gradient-to-r from-transparent to-slate-300 rounded-full" />
+                            <span className="text-slate-300 text-4xl">🏆</span>
+                            <div className="w-24 h-1 bg-gradient-to-l from-transparent to-slate-300 rounded-full" />
+                      </div>
+                    </div>
+                  </div>
                     </div>
                   </div>
                 </div>
@@ -3101,31 +3091,26 @@ const MainStage = () => {
                         {firstPlace?.name || 'THE CHAMPION'}
                       </h2>
                       
-                      {/* Prize Banner Image Display - CENTERED FULL WIDTH */}
-                      <div className="fixed bottom-[15vh] left-1/2 -translate-x-1/2 w-[90vw] z-20">
+                      {/* ULTRA GLOWING Prize Display - MAXIMUM IMPACT */}
+                      <div className="relative w-full max-w-5xl mx-auto px-4">
                         <div className="absolute inset-0 -m-10 bg-yellow-400/50 blur-3xl rounded-3xl animate-pulse" />
-                        <div className="relative w-full overflow-hidden rounded-2xl border-4 border-yellow-400 shadow-[0_0_100px_rgba(251,191,36,0.7)]">
-                          <img 
-                            src={CHAMPION_BANNERS[1]} 
-                            alt="1st Place Prize" 
-                            className="w-full h-auto object-contain"
-                            onError={(e) => {
-                              // Fallback to text display if image not found
-                              (e.target as HTMLImageElement).style.display = 'none';
-                              (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                            }}
-                          />
-                          {/* Fallback text display */}
-                          <div className="hidden px-10 py-8 bg-gradient-to-br from-yellow-600/60 via-amber-500/70 to-yellow-600/60">
-                            <div className="flex justify-center mb-4">
-                              <span className="text-7xl animate-bounce" style={{ animationDuration: '0.6s' }}>🥇</span>
+                        <div className="relative w-full px-10 py-8 bg-gradient-to-br from-yellow-600/60 via-amber-500/70 to-yellow-600/60 border-4 border-yellow-400 rounded-3xl shadow-[0_0_100px_rgba(251,191,36,0.7)]">
+                          <div className="flex justify-center mb-4">
+                            <div className="relative">
+                              <div className="absolute inset-0 -m-4 bg-yellow-400/60 blur-2xl rounded-full animate-pulse" />
+                              <span className="relative text-7xl animate-bounce" style={{ animationDuration: '0.6s' }}>🥇</span>
                             </div>
-                            <p className="text-yellow-100 font-display text-5xl md:text-6xl font-black text-center leading-tight">
-                              {firstPrize?.prize || 'Travel Voucher to Europe'}
-                            </p>
-                            <p className="text-yellow-300/90 font-mono text-2xl mt-4 text-center tracking-widest">
-                              {firstPrize?.description || 'Package for 2 Pax'}
-                            </p>
+                          </div>
+                          <p className="text-yellow-100 font-display text-5xl md:text-6xl lg:text-7xl font-black text-center leading-tight drop-shadow-[0_0_40px_rgba(251,191,36,0.9)]">
+                            {firstPrize?.prize || 'Travel Voucher to Europe'}
+                          </p>
+                          <p className="text-yellow-300/90 font-mono text-2xl mt-4 text-center tracking-widest">
+                            {firstPrize?.description || 'Package for 2 Pax'}
+                          </p>
+                          <div className="flex items-center justify-center gap-4 mt-5">
+                            <div className="w-24 h-1 bg-gradient-to-r from-transparent to-yellow-400 rounded-full" />
+                            <span className="text-yellow-400 text-4xl">👑</span>
+                            <div className="w-24 h-1 bg-gradient-to-l from-transparent to-yellow-400 rounded-full" />
                           </div>
                         </div>
                       </div>
