@@ -2951,14 +2951,14 @@ const MainStage = () => {
                         {thirdPlace?.name || 'BRONZE CHAMPION'}
                       </h2>
                       
-                      {/* Prize Banner Image Display */}
-                      <div className="relative w-full max-w-5xl mx-auto px-4">
+                      {/* Prize Banner Image Display - FULL WIDTH */}
+                      <div className="relative w-[90vw] mx-auto">
                         <div className="absolute inset-0 -m-10 bg-amber-500/50 blur-3xl rounded-3xl animate-pulse" />
-                        <div className="relative w-full overflow-hidden rounded-3xl border-4 border-amber-400 shadow-[0_0_100px_rgba(245,158,11,0.7)]">
+                        <div className="relative w-full overflow-hidden rounded-2xl border-4 border-amber-400 shadow-[0_0_100px_rgba(245,158,11,0.7)]">
                           <img 
                             src={CHAMPION_BANNERS[3]} 
                             alt="3rd Place Prize" 
-                            className="w-full h-auto object-cover"
+                            className="w-full h-auto object-contain"
                             onError={(e) => {
                               // Fallback to text display if image not found
                               (e.target as HTMLImageElement).style.display = 'none';
@@ -3024,14 +3024,14 @@ const MainStage = () => {
                         {secondPlace?.name || 'SILVER CHAMPION'}
                       </h2>
                       
-                      {/* Prize Banner Image Display */}
-                      <div className="relative w-full max-w-5xl mx-auto px-4">
+                      {/* Prize Banner Image Display - FULL WIDTH */}
+                      <div className="relative w-[90vw] mx-auto">
                         <div className="absolute inset-0 -m-10 bg-slate-300/50 blur-3xl rounded-3xl animate-pulse" />
-                        <div className="relative w-full overflow-hidden rounded-3xl border-4 border-slate-300 shadow-[0_0_100px_rgba(192,192,192,0.7)]">
+                        <div className="relative w-full overflow-hidden rounded-2xl border-4 border-slate-300 shadow-[0_0_100px_rgba(192,192,192,0.7)]">
                           <img 
                             src={CHAMPION_BANNERS[2]} 
                             alt="2nd Place Prize" 
-                            className="w-full h-auto object-cover"
+                            className="w-full h-auto object-contain"
                             onError={(e) => {
                               // Fallback to text display if image not found
                               (e.target as HTMLImageElement).style.display = 'none';
@@ -3101,14 +3101,14 @@ const MainStage = () => {
                         {firstPlace?.name || 'THE CHAMPION'}
                       </h2>
                       
-                      {/* Prize Banner Image Display */}
-                      <div className="relative w-full max-w-5xl mx-auto px-4">
+                      {/* Prize Banner Image Display - FULL WIDTH */}
+                      <div className="relative w-[90vw] mx-auto">
                         <div className="absolute inset-0 -m-10 bg-yellow-400/50 blur-3xl rounded-3xl animate-pulse" />
-                        <div className="relative w-full overflow-hidden rounded-3xl border-4 border-yellow-400 shadow-[0_0_100px_rgba(251,191,36,0.7)]">
+                        <div className="relative w-full overflow-hidden rounded-2xl border-4 border-yellow-400 shadow-[0_0_100px_rgba(251,191,36,0.7)]">
                           <img 
                             src={CHAMPION_BANNERS[1]} 
                             alt="1st Place Prize" 
-                            className="w-full h-auto object-cover"
+                            className="w-full h-auto object-contain"
                             onError={(e) => {
                               // Fallback to text display if image not found
                               (e.target as HTMLImageElement).style.display = 'none';
