@@ -2011,7 +2011,7 @@ const MainStage = () => {
     const roundNumber = gameSession.round_number || 1;
     
     return (
-      <div className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center bg-black p-8">
+      <div className="h-screen w-screen relative overflow-hidden flex flex-col bg-black p-[2vh]">
         {/* Deep background */}
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-purple-950/20 to-slate-950" />
         
@@ -2027,37 +2027,37 @@ const MainStage = () => {
         </div>
         
         {/* Corner decorations */}
-        <div className="absolute top-8 left-8 w-24 h-24 border-l-2 border-t-2 border-cyan-400/40 rounded-tl-3xl" />
-        <div className="absolute top-8 right-8 w-24 h-24 border-r-2 border-t-2 border-cyan-400/40 rounded-tr-3xl" />
-        <div className="absolute bottom-8 left-8 w-24 h-24 border-l-2 border-b-2 border-cyan-400/40 rounded-bl-3xl" />
-        <div className="absolute bottom-8 right-8 w-24 h-24 border-r-2 border-b-2 border-cyan-400/40 rounded-br-3xl" />
+        <div className="absolute top-4 left-4 w-16 h-16 border-l-2 border-t-2 border-cyan-400/40 rounded-tl-2xl" />
+        <div className="absolute top-4 right-4 w-16 h-16 border-r-2 border-t-2 border-cyan-400/40 rounded-tr-2xl" />
+        <div className="absolute bottom-4 left-4 w-16 h-16 border-l-2 border-b-2 border-cyan-400/40 rounded-bl-2xl" />
+        <div className="absolute bottom-4 right-4 w-16 h-16 border-r-2 border-b-2 border-cyan-400/40 rounded-br-2xl" />
         
         {/* Ambient glow */}
         <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-cyan-500/20 rounded-full blur-[150px]" />
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-purple-500/20 rounded-full blur-[150px]" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60vw] h-[30vh] bg-cyan-500/20 rounded-full blur-[100px]" />
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50vw] h-[25vh] bg-purple-500/20 rounded-full blur-[100px]" />
         </div>
         
-        <div className="relative z-10 w-full max-w-6xl mx-auto px-4">
-          {/* Header - Compact */}
-          <div className="text-center mb-4">
-            <p className="text-cyan-400/60 font-mono text-sm tracking-[0.3em] mb-1">ROUND {roundNumber}</p>
-            <h1 className="text-4xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 mb-1">
+        <div className="relative z-10 flex-1 flex flex-col w-full h-full px-[3vw]">
+          {/* Header */}
+          <div className="text-center py-[1.5vh]">
+            <p className="text-cyan-400/60 font-mono text-[1.2vw] tracking-[0.3em] mb-[0.5vh]">ROUND {roundNumber}</p>
+            <h1 className="text-[4vw] font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400">
               FINAL STANDINGS
             </h1>
-            <p className="text-slate-400 font-mono text-sm">
+            <p className="text-slate-400 font-mono text-[1vw]">
               {eliminationRankings.length} CANDIDATES COMPETED
             </p>
           </div>
           
-          {/* Two-Column Standings */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Two-Column Standings - Fills remaining space */}
+          <div className="flex-1 grid grid-cols-2 gap-[2vw] min-h-0">
             {/* Left Column: Ranks 1-5 */}
-            <div className="bg-slate-900/80 border border-cyan-400/30 rounded-xl overflow-hidden">
-              <div className="px-3 py-2 bg-slate-800/60 border-b border-cyan-400/20">
-                <span className="text-cyan-400 font-mono text-xs font-bold">RANK 1-5</span>
+            <div className="bg-slate-900/80 border-2 border-cyan-400/30 rounded-2xl overflow-hidden flex flex-col">
+              <div className="px-[1vw] py-[1vh] bg-slate-800/60 border-b border-cyan-400/20">
+                <span className="text-cyan-400 font-mono text-[1.2vw] font-bold">RANK 1-5</span>
               </div>
-              <div className="divide-y divide-slate-700/30">
+              <div className="flex-1 flex flex-col divide-y divide-slate-700/30">
                 {eliminationRankings.slice(0, 5).map((player, index) => {
                   const rank = index + 1;
                   const isEliminated = rank > eliminationRankings.length - eliminateCount;
@@ -2071,11 +2071,11 @@ const MainStage = () => {
                   return (
                     <div 
                       key={player.id}
-                      className={`flex items-center gap-2 px-3 py-2 ${
+                      className={`flex-1 flex items-center gap-[1vw] px-[1.5vw] ${
                         isEliminated ? 'bg-red-950/30' : isTop3 ? 'bg-yellow-950/20' : ''
                       }`}
                     >
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center font-display font-black text-sm flex-shrink-0 ${
+                      <div className={`w-[3vw] h-[3vw] rounded-full flex items-center justify-center font-display font-black text-[1.5vw] flex-shrink-0 ${
                         rank === 1 ? 'bg-yellow-500 text-yellow-900' : 
                         rank === 2 ? 'bg-slate-300 text-slate-800' : 
                         rank === 3 ? 'bg-amber-600 text-amber-100' :
@@ -2083,25 +2083,25 @@ const MainStage = () => {
                       }`}>
                         {rank}
                       </div>
-                      <div className={`w-8 h-8 rounded-full overflow-hidden border-2 flex-shrink-0 ${
+                      <div className={`w-[4vw] h-[4vw] rounded-full overflow-hidden border-[3px] flex-shrink-0 ${
                         isEliminated ? 'border-red-500/50' : 'border-cyan-400/30'
                       }`}>
                         {player.photo_url ? (
                           <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: player.avatar_color || '#6366f1' }}>
+                          <div className="w-full h-full flex items-center justify-center text-[1.5vw] font-bold" style={{ backgroundColor: player.avatar_color || '#6366f1' }}>
                             {player.name?.charAt(0) || '?'}
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-display font-bold truncate ${
+                        <p className={`text-[1.8vw] font-display font-bold truncate ${
                           isEliminated ? 'text-red-400' : isTop3 ? 'text-yellow-400' : 'text-white'
                         }`}>
                           {player.name}
                         </p>
                       </div>
-                      <span className={`text-sm font-mono font-bold flex-shrink-0 ${
+                      <span className={`text-[1.8vw] font-mono font-bold flex-shrink-0 ${
                         isEliminated ? 'text-red-400' : isTop3 ? 'text-yellow-400' : 'text-cyan-400'
                       }`}>
                         {scoreDisplay}
@@ -2113,11 +2113,11 @@ const MainStage = () => {
             </div>
             
             {/* Right Column: Ranks 6-10 */}
-            <div className="bg-slate-900/80 border border-cyan-400/30 rounded-xl overflow-hidden">
-              <div className="px-3 py-2 bg-slate-800/60 border-b border-cyan-400/20">
-                <span className="text-cyan-400 font-mono text-xs font-bold">RANK 6-10</span>
+            <div className="bg-slate-900/80 border-2 border-cyan-400/30 rounded-2xl overflow-hidden flex flex-col">
+              <div className="px-[1vw] py-[1vh] bg-slate-800/60 border-b border-cyan-400/20">
+                <span className="text-cyan-400 font-mono text-[1.2vw] font-bold">RANK 6-10</span>
               </div>
-              <div className="divide-y divide-slate-700/30">
+              <div className="flex-1 flex flex-col divide-y divide-slate-700/30">
                 {eliminationRankings.slice(5, 10).map((player, index) => {
                   const rank = index + 6;
                   const isEliminated = rank > eliminationRankings.length - eliminateCount;
@@ -2130,31 +2130,31 @@ const MainStage = () => {
                   return (
                     <div 
                       key={player.id}
-                      className={`flex items-center gap-2 px-3 py-2 ${isEliminated ? 'bg-red-950/30' : ''}`}
+                      className={`flex-1 flex items-center gap-[1vw] px-[1.5vw] ${isEliminated ? 'bg-red-950/30' : ''}`}
                     >
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center font-display font-black text-sm flex-shrink-0 ${
+                      <div className={`w-[3vw] h-[3vw] rounded-full flex items-center justify-center font-display font-black text-[1.5vw] flex-shrink-0 ${
                         isEliminated ? 'bg-red-500/30 text-red-400' : 'bg-slate-700 text-slate-300'
                       }`}>
                         {rank}
                       </div>
-                      <div className={`w-8 h-8 rounded-full overflow-hidden border-2 flex-shrink-0 ${
+                      <div className={`w-[4vw] h-[4vw] rounded-full overflow-hidden border-[3px] flex-shrink-0 ${
                         isEliminated ? 'border-red-500/50' : 'border-cyan-400/30'
                       }`}>
                         {player.photo_url ? (
                           <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: player.avatar_color || '#6366f1' }}>
+                          <div className="w-full h-full flex items-center justify-center text-[1.5vw] font-bold" style={{ backgroundColor: player.avatar_color || '#6366f1' }}>
                             {player.name?.charAt(0) || '?'}
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-display font-bold truncate ${isEliminated ? 'text-red-400' : 'text-white'}`}>
+                        <p className={`text-[1.8vw] font-display font-bold truncate ${isEliminated ? 'text-red-400' : 'text-white'}`}>
                           {player.name}
                         </p>
-                        {isEliminated && <p className="text-red-400/70 font-mono text-[10px]">ELIMINATED</p>}
+                        {isEliminated && <p className="text-red-400/70 font-mono text-[0.8vw]">ELIMINATED</p>}
                       </div>
-                      <span className={`text-sm font-mono font-bold flex-shrink-0 ${isEliminated ? 'text-red-400' : 'text-cyan-400'}`}>
+                      <span className={`text-[1.8vw] font-mono font-bold flex-shrink-0 ${isEliminated ? 'text-red-400' : 'text-cyan-400'}`}>
                         {scoreDisplay}
                       </span>
                     </div>
@@ -2165,23 +2165,23 @@ const MainStage = () => {
           </div>
           
           {/* Summary - Compact inline */}
-          <div className="mt-4 flex items-center justify-center gap-6">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30">
-              <span className="text-xl font-display font-black text-green-400">{eliminationRankings.length - eliminateCount}</span>
-              <span className="text-green-400/70 font-mono text-xs font-bold">ADVANCING</span>
+          <div className="py-[1.5vh] flex items-center justify-center gap-[3vw]">
+            <div className="flex items-center gap-[1vw] px-[2vw] py-[1vh] rounded-xl bg-green-500/10 border-2 border-green-500/30">
+              <span className="text-[2.5vw] font-display font-black text-green-400">{eliminationRankings.length - eliminateCount}</span>
+              <span className="text-green-400/70 font-mono text-[1vw] font-bold">ADVANCING</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30">
-              <span className="text-xl font-display font-black text-red-400">{eliminateCount}</span>
-              <span className="text-red-400/70 font-mono text-xs font-bold">ELIMINATED</span>
+            <div className="flex items-center gap-[1vw] px-[2vw] py-[1vh] rounded-xl bg-red-500/10 border-2 border-red-500/30">
+              <span className="text-[2.5vw] font-display font-black text-red-400">{eliminateCount}</span>
+              <span className="text-red-400/70 font-mono text-[1vw] font-bold">ELIMINATED</span>
             </div>
           </div>
           
           {/* Continue prompt */}
-          <div className="mt-4 text-center">
-            <p className="text-cyan-400/80 font-display text-lg tracking-wider animate-pulse">
+          <div className="pb-[1vh] text-center">
+            <p className="text-cyan-400/80 font-display text-[1.5vw] tracking-wider animate-pulse">
               PROCEED TO PRIZE REVEAL
             </p>
-            <p className="text-slate-500 font-mono text-xs mt-1">Press ENTER or → to continue</p>
+            <p className="text-slate-500 font-mono text-[0.8vw] mt-[0.5vh]">Press ENTER or → to continue</p>
           </div>
         </div>
       </div>
@@ -3384,7 +3384,7 @@ const MainStage = () => {
                     {/* Header */}
                     <div className="relative flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <div className="relative">
+                  <div className="relative">
                           <Flag className="w-5 h-5 text-cyan-400" />
                         </div>
                         <div>
@@ -3431,9 +3431,9 @@ const MainStage = () => {
                                   isLeading ? 'bg-yellow-900/90 text-yellow-300 border border-yellow-500/50' : 
                                   'bg-slate-900/90 text-slate-300 border border-slate-600/50'
                                 }`}>
-                                  {player.name}
-                                </div>
+                                {player.name}
                               </div>
+                                </div>
                               
                               {/* Track - flexible width */}
                               <div className="flex-1 relative h-10 flex items-center">
@@ -3449,7 +3449,7 @@ const MainStage = () => {
                                     }`}
                                     style={{ width: `${progress}%` }}
                                   />
-                                </div>
+                              </div>
                                 
                                 {/* Player avatar on track */}
                                 <div 
@@ -3468,7 +3468,7 @@ const MainStage = () => {
                                       ) : (
                                         <div className="w-full h-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: player.avatar_color }}>
                                           {player.name[0]}
-                                        </div>
+                            </div>
                                       )}
                                     </div>
                                     {isLeading && !isFinished && <div className="absolute -top-0.5 -right-0.5 text-[8px]">👑</div>}
@@ -3480,8 +3480,8 @@ const MainStage = () => {
                                         'bg-emerald-500 text-white'
                                       }`}>
                                         {finishRank}
-                                      </div>
-                                    )}
+                              </div>
+                            )}
                                   </div>
                                 </div>
                               </div>
@@ -3523,7 +3523,7 @@ const MainStage = () => {
                           <div className="flex items-center gap-1">
                             <div className="w-2 h-2 rounded-full bg-emerald-400" />
                             <span className="text-slate-500 font-mono">Finished</span>
-                          </div>
+                  </div>
                           <div className="flex items-center gap-1">
                             <div className="w-2 h-2 rounded-full bg-yellow-400" />
                             <span className="text-slate-500 font-mono">Leading</span>
@@ -3537,8 +3537,8 @@ const MainStage = () => {
                           <div className="flex items-center gap-1 text-emerald-400 font-mono font-bold animate-pulse text-xs">
                             <Trophy className="w-3 h-3" />
                             COMPLETE
-                          </div>
-                        )}
+                </div>
+              )}
                       </div>
                     </div>
                   </div>
@@ -3812,10 +3812,10 @@ const MainStage = () => {
                           <h3 className="text-2xl font-black text-yellow-400 mb-5 text-center font-display tracking-wide">
                             ⚡ TRIAL STANDINGS
                           </h3>
-                          <div className="space-y-3">
-                            {[...playersWithProgress]
+                <div className="space-y-3">
+                  {[...playersWithProgress]
                               .filter(p => (p.progress?.elapsed_time ?? 0) > 0)
-                              .sort((a, b) => {
+                    .sort((a, b) => {
                                 const aTime = a.progress?.elapsed_time ?? Infinity;
                                 const bTime = b.progress?.elapsed_time ?? Infinity;
                                 const aDiff = Math.abs(aTime - 7.7);
@@ -3954,7 +3954,7 @@ const MainStage = () => {
                                   </span>
                                 )}
                       </div>
-                            </div>
+                </div>
                           );
                         })}
                 </div>
