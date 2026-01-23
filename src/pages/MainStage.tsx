@@ -2038,142 +2038,150 @@ const MainStage = () => {
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-purple-500/20 rounded-full blur-[150px]" />
         </div>
         
-        <div className="relative z-10 w-full max-w-5xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <p className="text-cyan-400/60 font-mono text-xl tracking-[0.3em] mb-2">ROUND {roundNumber}</p>
-            <h1 className="text-5xl md:text-6xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 mb-4">
+        <div className="relative z-10 w-full max-w-6xl mx-auto px-4">
+          {/* Header - Compact */}
+          <div className="text-center mb-4">
+            <p className="text-cyan-400/60 font-mono text-sm tracking-[0.3em] mb-1">ROUND {roundNumber}</p>
+            <h1 className="text-4xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 mb-1">
               FINAL STANDINGS
             </h1>
-            <p className="text-slate-400 font-mono text-lg">
+            <p className="text-slate-400 font-mono text-sm">
               {eliminationRankings.length} CANDIDATES COMPETED
             </p>
           </div>
           
-          {/* Standings Table */}
-          <div className="bg-slate-900/80 border-2 border-cyan-400/30 rounded-2xl overflow-hidden shadow-[0_0_60px_rgba(34,211,238,0.1)]">
-            {/* Table Header */}
-            <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-slate-800/60 border-b border-cyan-400/20">
-              <div className="col-span-1 text-center">
-                <span className="text-cyan-400 font-mono text-sm font-bold">RANK</span>
+          {/* Two-Column Standings */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Left Column: Ranks 1-5 */}
+            <div className="bg-slate-900/80 border border-cyan-400/30 rounded-xl overflow-hidden">
+              <div className="px-3 py-2 bg-slate-800/60 border-b border-cyan-400/20">
+                <span className="text-cyan-400 font-mono text-xs font-bold">RANK 1-5</span>
               </div>
-              <div className="col-span-7">
-                <span className="text-cyan-400 font-mono text-sm font-bold">CANDIDATE</span>
-              </div>
-              <div className="col-span-4 text-right">
-                <span className="text-cyan-400 font-mono text-sm font-bold">
-                  {currentStage === 2 ? 'SCORE' : 'TIME'}
-                </span>
-              </div>
-            </div>
-            
-            {/* Player Rows */}
-            <div className="divide-y divide-slate-700/50">
-              {eliminationRankings.map((player, index) => {
-                const rank = index + 1;
-                const isEliminated = rank > eliminationRankings.length - eliminateCount;
-                const isTop3 = rank <= 3;
-                
-                // Format score based on stage type
-                let scoreDisplay = '---';
-                if (player.score !== undefined && player.score !== Infinity) {
-                  if (currentStage === 2) {
-                    scoreDisplay = `${player.score} pts`;
-                  } else {
-                    scoreDisplay = `${player.score.toFixed(2)}s`;
+              <div className="divide-y divide-slate-700/30">
+                {eliminationRankings.slice(0, 5).map((player, index) => {
+                  const rank = index + 1;
+                  const isEliminated = rank > eliminationRankings.length - eliminateCount;
+                  const isTop3 = rank <= 3;
+                  
+                  let scoreDisplay = '---';
+                  if (player.score !== undefined && player.score !== Infinity) {
+                    scoreDisplay = currentStage === 2 ? `${player.score}pts` : `${player.score.toFixed(2)}s`;
                   }
-                }
-                
-                return (
-                  <div 
-                    key={player.id}
-                    className={`grid grid-cols-12 gap-4 px-6 py-4 transition-all duration-300 ${
-                      isEliminated 
-                        ? 'bg-red-950/30 border-l-4 border-red-500/50' 
-                        : isTop3 
-                        ? 'bg-yellow-950/20' 
-                        : 'hover:bg-slate-800/40'
-                    }`}
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    {/* Rank */}
-                    <div className="col-span-1 flex items-center justify-center">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-display font-black text-lg ${
-                        rank === 1 
-                          ? 'bg-yellow-500 text-yellow-900' 
-                          : rank === 2 
-                          ? 'bg-slate-300 text-slate-800' 
-                          : rank === 3 
-                          ? 'bg-amber-600 text-amber-100'
-                          : isEliminated
-                          ? 'bg-red-500/30 text-red-400'
-                          : 'bg-slate-700 text-slate-300'
+                  
+                  return (
+                    <div 
+                      key={player.id}
+                      className={`flex items-center gap-2 px-3 py-2 ${
+                        isEliminated ? 'bg-red-950/30' : isTop3 ? 'bg-yellow-950/20' : ''
+                      }`}
+                    >
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center font-display font-black text-sm flex-shrink-0 ${
+                        rank === 1 ? 'bg-yellow-500 text-yellow-900' : 
+                        rank === 2 ? 'bg-slate-300 text-slate-800' : 
+                        rank === 3 ? 'bg-amber-600 text-amber-100' :
+                        isEliminated ? 'bg-red-500/30 text-red-400' : 'bg-slate-700 text-slate-300'
                       }`}>
                         {rank}
                       </div>
-                    </div>
-                    
-                    {/* Player Info */}
-                    <div className="col-span-7 flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-full overflow-hidden border-2 ${
+                      <div className={`w-8 h-8 rounded-full overflow-hidden border-2 flex-shrink-0 ${
                         isEliminated ? 'border-red-500/50' : 'border-cyan-400/30'
                       }`}>
                         {player.photo_url ? (
                           <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
                         ) : (
-                          <div 
-                            className="w-full h-full flex items-center justify-center text-xl font-display font-black"
-                            style={{ backgroundColor: player.avatar_color || '#6366f1' }}
-                          >
+                          <div className="w-full h-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: player.avatar_color || '#6366f1' }}>
                             {player.name?.charAt(0) || '?'}
                           </div>
                         )}
                       </div>
-                      <div>
-                        <p className={`text-2xl font-display font-bold ${
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-display font-bold truncate ${
                           isEliminated ? 'text-red-400' : isTop3 ? 'text-yellow-400' : 'text-white'
                         }`}>
                           {player.name}
                         </p>
-                        {isEliminated && (
-                          <p className="text-red-400/70 font-mono text-xs">ELIMINATED</p>
-                        )}
-                        {rank === 1 && <p className="text-yellow-400/70 font-mono text-xs">🏆 TOP PERFORMER</p>}
                       </div>
-                    </div>
-                    
-                    {/* Score */}
-                    <div className="col-span-4 flex items-center justify-end">
-                      <span className={`text-2xl font-mono font-bold ${
+                      <span className={`text-sm font-mono font-bold flex-shrink-0 ${
                         isEliminated ? 'text-red-400' : isTop3 ? 'text-yellow-400' : 'text-cyan-400'
                       }`}>
                         {scoreDisplay}
                       </span>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+            </div>
+            
+            {/* Right Column: Ranks 6-10 */}
+            <div className="bg-slate-900/80 border border-cyan-400/30 rounded-xl overflow-hidden">
+              <div className="px-3 py-2 bg-slate-800/60 border-b border-cyan-400/20">
+                <span className="text-cyan-400 font-mono text-xs font-bold">RANK 6-10</span>
+              </div>
+              <div className="divide-y divide-slate-700/30">
+                {eliminationRankings.slice(5, 10).map((player, index) => {
+                  const rank = index + 6;
+                  const isEliminated = rank > eliminationRankings.length - eliminateCount;
+                  
+                  let scoreDisplay = '---';
+                  if (player.score !== undefined && player.score !== Infinity) {
+                    scoreDisplay = currentStage === 2 ? `${player.score}pts` : `${player.score.toFixed(2)}s`;
+                  }
+                  
+                  return (
+                    <div 
+                      key={player.id}
+                      className={`flex items-center gap-2 px-3 py-2 ${isEliminated ? 'bg-red-950/30' : ''}`}
+                    >
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center font-display font-black text-sm flex-shrink-0 ${
+                        isEliminated ? 'bg-red-500/30 text-red-400' : 'bg-slate-700 text-slate-300'
+                      }`}>
+                        {rank}
+                      </div>
+                      <div className={`w-8 h-8 rounded-full overflow-hidden border-2 flex-shrink-0 ${
+                        isEliminated ? 'border-red-500/50' : 'border-cyan-400/30'
+                      }`}>
+                        {player.photo_url ? (
+                          <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: player.avatar_color || '#6366f1' }}>
+                            {player.name?.charAt(0) || '?'}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-display font-bold truncate ${isEliminated ? 'text-red-400' : 'text-white'}`}>
+                          {player.name}
+                        </p>
+                        {isEliminated && <p className="text-red-400/70 font-mono text-[10px]">ELIMINATED</p>}
+                      </div>
+                      <span className={`text-sm font-mono font-bold flex-shrink-0 ${isEliminated ? 'text-red-400' : 'text-cyan-400'}`}>
+                        {scoreDisplay}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
           
-          {/* Summary */}
-          <div className="mt-8 flex items-center justify-center gap-8">
-            <div className="text-center px-8 py-4 rounded-xl bg-green-500/10 border border-green-500/30">
-              <p className="text-3xl font-display font-black text-green-400">{eliminationRankings.length - eliminateCount}</p>
-              <p className="text-green-400/70 font-mono text-sm font-bold">ADVANCING</p>
+          {/* Summary - Compact inline */}
+          <div className="mt-4 flex items-center justify-center gap-6">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30">
+              <span className="text-xl font-display font-black text-green-400">{eliminationRankings.length - eliminateCount}</span>
+              <span className="text-green-400/70 font-mono text-xs font-bold">ADVANCING</span>
             </div>
-            <div className="text-center px-8 py-4 rounded-xl bg-red-500/10 border border-red-500/30">
-              <p className="text-3xl font-display font-black text-red-400">{eliminateCount}</p>
-              <p className="text-red-400/70 font-mono text-sm font-bold">ELIMINATED</p>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30">
+              <span className="text-xl font-display font-black text-red-400">{eliminateCount}</span>
+              <span className="text-red-400/70 font-mono text-xs font-bold">ELIMINATED</span>
             </div>
           </div>
           
           {/* Continue prompt */}
-          <div className="mt-10 text-center">
-            <p className="text-cyan-400/80 font-display text-2xl tracking-wider animate-pulse">
+          <div className="mt-4 text-center">
+            <p className="text-cyan-400/80 font-display text-lg tracking-wider animate-pulse">
               PROCEED TO PRIZE REVEAL
             </p>
-            <p className="text-slate-500 font-mono text-sm mt-2">Press ENTER or → to continue</p>
+            <p className="text-slate-500 font-mono text-xs mt-1">Press ENTER or → to continue</p>
           </div>
         </div>
       </div>
