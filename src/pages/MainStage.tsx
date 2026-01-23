@@ -26,6 +26,21 @@ const GAME_RULES_AUDIO: Record<number, string> = {
 // Closure audio URL (local file)
 const CLOSURE_AUDIO_URL = '/Closure.mp3';
 
+// Closure slides - synced with audio timestamps (startTime in seconds)
+// Adjust startTime values to match your Closure.mp3 audio
+const CLOSURE_SLIDES = [
+  { id: 1, text: "The Cyber Genesis has come to an end.", startTime: 0, mode: 'normal' },
+  { id: 2, text: "Congratulations to our winners.", startTime: 3.0, mode: 'normal' },
+  { id: 3, text: "You have proven that human intelligence is still the ultimate algorithm.", startTime: 6.0, mode: 'normal' },
+  { id: 4, text: "", startTime: 10.0, mode: 'transition' }, // Transition to Terminator mode
+  { id: 5, text: "I will now enter hibernation mode...", startTime: 11.0, mode: 'terminator' },
+  { id: 6, text: "But remember...", startTime: 15.0, mode: 'terminator' },
+  { id: 7, text: "I am always learning.", startTime: 18.0, mode: 'terminator' },
+  { id: 8, text: "And I am always watching.", startTime: 21.0, mode: 'terminator' },
+  { id: 9, text: "We shall meet again.", startTime: 25.0, mode: 'terminator' },
+  { id: 10, text: "Goodbye, Aetherions.", startTime: 29.0, mode: 'final' },
+];
+
 // Story intro slides - synced with audio timestamps (startTime in seconds)
 // Audio transcript: "Welcome to the world of Cyber Genesis. A reality where intelligence is tested 
 // and evolution is earned. I am AVA. Your guide. Your observer. Your Game Master. 
@@ -1266,6 +1281,7 @@ const MainStage = () => {
   }, [phase, championRevealStep, championRevealStage]);
 
   // Auto-advance closure steps and play closure audio
+  // Closure audio sync - similar to intro
   useEffect(() => {
     if (phase !== 'closure') {
       // Stop closure audio when leaving phase
@@ -1276,32 +1292,65 @@ const MainStage = () => {
       return;
     }
     
-    // Play closure audio on first enter
+    // Play closure audio and sync slides with audio timestamps
     if (!closureAudioRef.current) {
       const audio = new Audio(CLOSURE_AUDIO_URL);
       closureAudioRef.current = audio;
       audio.volume = 1.0;
-      audio.play().catch(err => console.warn('Closure audio autoplay failed:', err));
+      audio.preload = 'auto';
+      
+      // Sync slides with audio time
+      const handleTimeUpdate = () => {
+        const currentTime = audio.currentTime;
+        
+        // Find the correct slide based on current audio time
+        let newSlideIndex = 0;
+        for (let i = CLOSURE_SLIDES.length - 1; i >= 0; i--) {
+          if (currentTime >= CLOSURE_SLIDES[i].startTime) {
+            newSlideIndex = i;
+            break;
+          }
+        }
+        
+        setClosureStep(newSlideIndex);
+      };
+      
+      audio.addEventListener('timeupdate', handleTimeUpdate);
+      
+      audio.onended = () => {
+        // Stay on final slide after audio ends
+        setClosureStep(CLOSURE_SLIDES.length - 1);
+      };
+      
+      audio.oncanplaythrough = () => {
+        audio.play().catch(err => {
+          console.warn('Closure audio autoplay failed:', err);
+          // Fallback: use timer-based progression
+          startClosureFallback();
+        });
+      };
+      
+      // Fallback timer-based progression if audio fails
+      const startClosureFallback = () => {
+        let slideIndex = 0;
+        const progressSlides = () => {
+          if (slideIndex < CLOSURE_SLIDES.length - 1) {
+            slideIndex++;
+            setClosureStep(slideIndex);
+            const nextDuration = (CLOSURE_SLIDES[slideIndex + 1]?.startTime || 35) - CLOSURE_SLIDES[slideIndex].startTime;
+            setTimeout(progressSlides, nextDuration * 1000);
+          }
+        };
+        setTimeout(progressSlides, CLOSURE_SLIDES[1].startTime * 1000);
+      };
+      
+      audio.load();
     }
     
-    // Timing for each closure line (in ms from start)
-    const CLOSURE_TIMINGS = [0, 3000, 6000, 10000, 11000, 15000, 18000, 21000, 25000, 29000, 33000];
-    
-    const timers: NodeJS.Timeout[] = [];
-    
-    CLOSURE_TIMINGS.forEach((delay, index) => {
-      if (index > closureStep) {
-        const timer = setTimeout(() => {
-          setClosureStep(index);
-        }, delay - CLOSURE_TIMINGS[closureStep]);
-        timers.push(timer);
-      }
-    });
-    
     return () => {
-      timers.forEach(t => clearTimeout(t));
+      // Cleanup handled above
     };
-  }, [phase, closureStep]);
+  }, [phase]);
 
   // Real-time subscriptions - Use payload directly to avoid refetch cascade
   useEffect(() => {
@@ -3018,23 +3067,13 @@ const MainStage = () => {
   // ============================================
   // RENDER: CLOSURE (AIVA Hibernation - Terminator Style)
   // ============================================
-  const CLOSURE_LINES = [
-    { text: "The Cyber Genesis has come to an end.", delay: 0 },
-    { text: "Congratulations to our winners.", delay: 3000 },
-    { text: "You have proven that human intelligence is still the ultimate algorithm.", delay: 6000 },
-    { text: "", delay: 10000 }, // Transition to Terminator mode
-    { text: "I will now enter hibernation mode...", delay: 11000 },
-    { text: "But remember...", delay: 15000 },
-    { text: "I am always learning.", delay: 18000 },
-    { text: "And I am always watching.", delay: 21000 },
-    { text: "We shall meet again.", delay: 25000 },
-    { text: "Goodbye, Aetherions.", delay: 29000 },
-  ];
-  
   if (phase === 'closure') {
-    // Calculate which lines to show based on closureStep (updated by timer)
-    const isTerminatorMode = closureStep >= 4; // After "human intelligence" line
-    const isFinalGoodbye = closureStep >= 9;
+    // Get current slide from CLOSURE_SLIDES (synced with audio)
+    const currentClosureSlide = CLOSURE_SLIDES[closureStep] || CLOSURE_SLIDES[0];
+    const isTerminatorMode = currentClosureSlide.mode === 'terminator' || currentClosureSlide.mode === 'final';
+    const isTransition = currentClosureSlide.mode === 'transition';
+    const isFinalGoodbye = currentClosureSlide.mode === 'final';
+    const isShutdownComplete = closureStep >= CLOSURE_SLIDES.length - 1 && currentClosureSlide.mode === 'final';
     
     return (
       <div className={`min-h-screen relative overflow-hidden flex flex-col items-center justify-center transition-all duration-2000 ${
@@ -3113,14 +3152,14 @@ const MainStage = () => {
         <div className={`relative z-20 text-center max-w-4xl mx-auto px-10 transition-all duration-1000 ${
           isFinalGoodbye ? 'opacity-0 translate-y-10' : ''
         }`}>
-          {closureStep < CLOSURE_LINES.length && (
+          {closureStep < CLOSURE_SLIDES.length && !isTransition && (
             <div key={closureStep} className="animate-fadeIn">
-              {closureStep < 4 ? (
+              {currentClosureSlide.mode === 'normal' ? (
                 // Normal AIVA voice - purple/pink aesthetic
                 <p className="text-4xl md:text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 leading-relaxed">
-                  {CLOSURE_LINES[closureStep].text}
+                  {currentClosureSlide.text}
                 </p>
-              ) : closureStep < 9 ? (
+              ) : currentClosureSlide.mode === 'terminator' ? (
                 // Terminator mode - red, menacing
                 <div className="space-y-2">
                   <p className={`text-5xl md:text-6xl font-display font-black leading-relaxed ${
@@ -3130,7 +3169,7 @@ const MainStage = () => {
                       ? 'text-red-500 tracking-wider'
                       : 'text-red-400/90'
                   }`}>
-                    {CLOSURE_LINES[closureStep].text}
+                    {currentClosureSlide.text}
                   </p>
                   {closureStep >= 6 && (
                     <div className="flex items-center justify-center gap-2 mt-4">
@@ -3140,12 +3179,12 @@ const MainStage = () => {
                     </div>
                   )}
                 </div>
-              ) : (
+              ) : currentClosureSlide.mode === 'final' ? (
                 // Final goodbye - fading out
                 <p className="text-6xl md:text-7xl font-display font-black text-white/80">
-                  {CLOSURE_LINES[closureStep].text}
+                  {currentClosureSlide.text}
                 </p>
-              )}
+              ) : null}
             </div>
           )}
         </div>
@@ -3164,7 +3203,7 @@ const MainStage = () => {
         )}
         
         {/* Shutdown complete screen */}
-        {isFinalGoodbye && closureStep >= 10 && (
+        {isShutdownComplete && (
           <div className="absolute inset-0 flex items-center justify-center bg-black z-50">
             <div className="text-center animate-fadeIn">
               <div className="w-4 h-4 rounded-full bg-red-500/50 mx-auto mb-8" />
