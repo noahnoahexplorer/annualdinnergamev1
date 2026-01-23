@@ -42,15 +42,35 @@ const STORY_SLIDES = [
   { id: 6, text: 'YOUR GUIDE. YOUR OBSERVER. YOUR GAME MASTER.', state: 'speaking', startTime: 9.0, showAvatar: true },
   { id: 7, text: 'TONIGHT, 10 CONTENDERS HAVE BEEN SELECTED', state: 'scanning', startTime: 13.0, showAvatar: true },
   { id: 8, text: 'BUT SELECTION DOES NOT GUARANTEE SURVIVAL', state: 'speaking', startTime: 16.5, showAvatar: true },
-  { id: 9, text: 'ONLY THE STRONGEST WILL SECURE THEIR PLACE', state: 'scanning', startTime: 20.0, showAvatar: true },
-  { id: 10, text: 'YOUR PERFORMANCE WILL DETERMINE YOUR RANK', state: 'speaking', startTime: 24.0, showAvatar: true },
-  { id: 11, text: 'YOUR SPEED. YOUR PRECISION. AND YOUR DECISIONS', state: 'speaking', startTime: 27.5, showAvatar: true },
-  { id: 12, text: 'WILL SHAPE YOUR FATE', state: 'speaking', startTime: 31.5, showAvatar: true },
-  { id: 13, text: 'THERE ARE NO SECOND CHANCES', state: 'scanning', startTime: 34.0, showAvatar: true },
-  { id: 14, text: 'PREPARE YOURSELVES', state: 'speaking', startTime: 37.0, showAvatar: true },
-  { id: 15, text: 'THE CYBER GENESIS', state: 'celebrating', startTime: 39.5, showAvatar: true, highlight: true },
-  { id: 16, text: 'BEGINS NOW!', state: 'celebrating', startTime: 42.5, showAvatar: true, highlight: true },
+  { id: 9, text: 'ONLY THE STRONGEST WILL SECURE THEIR PLACE', state: 'scanning', startTime: 19.8, showAvatar: true },
+  { id: 10, text: 'YOUR PERFORMANCE WILL DETERMINE YOUR RANK', state: 'speaking', startTime: 22.5, showAvatar: true },
+  { id: 11, text: 'YOUR SPEED. YOUR PRECISION. AND YOUR DECISIONS', state: 'speaking', startTime: 25.0, showAvatar: true },
+  { id: 12, text: 'WILL SHAPE YOUR FATE', state: 'speaking', startTime: 28.5, showAvatar: true },
+  { id: 13, text: 'THERE ARE NO SECOND CHANCES', state: 'scanning', startTime: 30.0, showAvatar: true },
+  { id: 14, text: 'PREPARE YOURSELVES', state: 'speaking', startTime: 32.5, showAvatar: true },
+  { id: 15, text: 'THE CYBER GENESIS', state: 'celebrating', startTime: 34.3, showAvatar: true, highlight: true },
+  { id: 16, text: 'BEGINS NOW!', state: 'celebrating', startTime: 36.0, showAvatar: true, highlight: true },
 ];
+
+// Helper function to calculate dynamic charDelay based on available time
+const getSlideCharDelay = (slideIndex: number): number => {
+  const currentSlide = STORY_SLIDES[slideIndex];
+  const nextSlide = STORY_SLIDES[slideIndex + 1];
+  
+  if (!currentSlide || !nextSlide) {
+    return 30; // Default for last slide
+  }
+  
+  const availableTime = (nextSlide.startTime - currentSlide.startTime) * 1000; // in ms
+  const textLength = currentSlide.text.length;
+  
+  // Use 70% of available time for typing (leave 30% for reading)
+  const targetTypingTime = availableTime * 0.7;
+  const calculatedDelay = targetTypingTime / textLength;
+  
+  // Clamp between 5ms (very fast) and 50ms (slow dramatic)
+  return Math.max(5, Math.min(50, calculatedDelay));
+};
 
 // Cinematic character-by-character typewriter component
 const TypewriterText = ({ text, className = '', charDelay = 35, onComplete }: { 
@@ -1508,7 +1528,7 @@ const MainStage = () => {
             }`}>
               <TypewriterText 
                 text={currentSlide.text} 
-                charDelay={isHighlight ? 80 : 40}
+                charDelay={isHighlight ? 60 : getSlideCharDelay(storySlide)}
               />
             </h1>
           </div>
