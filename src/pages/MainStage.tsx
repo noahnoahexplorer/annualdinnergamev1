@@ -2287,7 +2287,7 @@ const MainStage = () => {
     const isLastPrize = prizeRevealIndex >= eliminatedPositions.length - 1;
 
     return (
-      <div className="h-screen w-screen relative overflow-hidden flex flex-col items-center justify-center bg-black">
+      <div className="h-screen w-screen relative overflow-hidden flex flex-col items-center justify-start pt-[2vh] bg-black">
         {/* Deep space background */}
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-purple-950/30 to-slate-950" />
         
@@ -2376,16 +2376,16 @@ const MainStage = () => {
           />
         )}
         
-        {/* Main Content - Viewport scaled */}
-        <div className="relative z-10 text-center w-full max-w-[90vw] mx-auto px-[2vw] flex flex-col items-center justify-center">
+        {/* Main Content - Viewport scaled, flex-1 to fill remaining space */}
+        <div className="relative z-10 text-center w-full max-w-[90vw] mx-auto px-[2vw] flex flex-col items-center flex-1 min-h-0">
           
           {/* Rank Badge - Viewport scaled */}
-          <div className={`mb-[1.5vh] ${prizeAnimationPhase !== 'entering' ? 'animate-prize-slide-down' : 'opacity-0'}`}>
+          <div className={`mb-[1vh] flex-shrink-0 ${prizeAnimationPhase !== 'entering' ? 'animate-prize-slide-down' : 'opacity-0'}`}>
             <div className="relative inline-block">
               {/* Glow behind badge */}
               <div className="absolute inset-0 blur-2xl bg-yellow-500/40 rounded-3xl scale-110" />
-              <div className="relative px-[4vw] py-[1.5vh] bg-gradient-to-r from-amber-600/30 via-yellow-500/40 to-amber-600/30 border-3 border-yellow-400/80 rounded-2xl backdrop-blur-sm">
-                <h1 className="text-[4vw] font-display font-black tracking-wider animate-text-shimmer">
+              <div className="relative px-[3vw] py-[1vh] bg-gradient-to-r from-amber-600/30 via-yellow-500/40 to-amber-600/30 border-3 border-yellow-400/80 rounded-2xl backdrop-blur-sm">
+                <h1 className="text-[3.5vw] font-display font-black tracking-wider animate-text-shimmer">
                   {prizeData?.title || `${currentPosition}TH PLACE`}
                 </h1>
               </div>
@@ -2393,28 +2393,28 @@ const MainStage = () => {
           </div>
           
           {/* Decorative line */}
-          <div className={`flex items-center justify-center gap-[1vw] mb-[2vh] ${prizeAnimationPhase !== 'entering' ? 'animate-fadeIn' : 'opacity-0'}`}>
-            <div className="h-0.5 w-[6vw] bg-gradient-to-r from-transparent via-yellow-400 to-yellow-400" />
-            <span className="text-yellow-400 text-[2vw]">★</span>
-            <span className="text-yellow-400 font-display text-[1.5vw] font-bold tracking-[0.3em]">CONGRATULATIONS</span>
-            <span className="text-yellow-400 text-[2vw]">★</span>
-            <div className="h-0.5 w-[6vw] bg-gradient-to-l from-transparent via-yellow-400 to-yellow-400" />
+          <div className={`flex items-center justify-center gap-[0.8vw] mb-[1vh] flex-shrink-0 ${prizeAnimationPhase !== 'entering' ? 'animate-fadeIn' : 'opacity-0'}`}>
+            <div className="h-0.5 w-[5vw] bg-gradient-to-r from-transparent via-yellow-400 to-yellow-400" />
+            <span className="text-yellow-400 text-[1.5vw]">★</span>
+            <span className="text-yellow-400 font-display text-[1.2vw] font-bold tracking-[0.3em]">CONGRATULATIONS</span>
+            <span className="text-yellow-400 text-[1.5vw]">★</span>
+            <div className="h-0.5 w-[5vw] bg-gradient-to-l from-transparent via-yellow-400 to-yellow-400" />
           </div>
           
-          {/* Player Photo & Name - Viewport scaled */}
+          {/* Player Photo & Name - Compact when revealed */}
           {currentPlayer && (
-            <div className={`mb-[2vh] ${prizeAnimationPhase === 'name' || prizeAnimationPhase === 'box' || prizeAnimationPhase === 'revealed' ? 'animate-prize-zoom-in' : 'opacity-0'}`}>
+            <div className={`mb-[1vh] flex-shrink-0 ${prizeAnimationPhase === 'name' || prizeAnimationPhase === 'box' || prizeAnimationPhase === 'revealed' ? 'animate-prize-zoom-in' : 'opacity-0'}`}>
               {/* Photo with spotlight ring */}
-              <div className="relative inline-block mb-[1.5vh]">
+              <div className="relative inline-block mb-[0.8vh]">
                 {/* Animated rings */}
-                <div className="absolute inset-0 -m-[0.8vw] rounded-full border-2 border-yellow-400/30 animate-ping" style={{ animationDuration: '2s' }} />
-                <div className="absolute inset-0 -m-[1.5vw] rounded-full border border-yellow-400/20 animate-ping" style={{ animationDuration: '3s' }} />
+                <div className="absolute inset-0 -m-[0.5vw] rounded-full border-2 border-yellow-400/30 animate-ping" style={{ animationDuration: '2s' }} />
+                <div className="absolute inset-0 -m-[1vw] rounded-full border border-yellow-400/20 animate-ping" style={{ animationDuration: '3s' }} />
                 
                 {/* Glow */}
-                <div className="absolute inset-0 -m-[0.5vw] rounded-full bg-yellow-400/30 blur-xl" />
+                <div className="absolute inset-0 -m-[0.3vw] rounded-full bg-yellow-400/30 blur-xl" />
                 
-                {/* Photo */}
-                <div className="relative w-[12vw] h-[12vw] rounded-full overflow-hidden border-4 border-yellow-400 shadow-[0_0_40px_rgba(251,191,36,0.5)]">
+                {/* Photo - smaller */}
+                <div className="relative w-[9vw] h-[9vw] rounded-full overflow-hidden border-[3px] border-yellow-400 shadow-[0_0_40px_rgba(251,191,36,0.5)]">
                   {currentPlayer.photo_url ? (
                     <img 
                       src={currentPlayer.photo_url} 
@@ -2423,7 +2423,7 @@ const MainStage = () => {
                     />
                   ) : (
                     <div 
-                      className="w-full h-full flex items-center justify-center text-[4vw] font-display font-black"
+                      className="w-full h-full flex items-center justify-center text-[3vw] font-display font-black"
                       style={{ backgroundColor: currentPlayer.avatar_color || '#6366f1' }}
                     >
                       {currentPlayer.name.charAt(0)}
@@ -2434,81 +2434,81 @@ const MainStage = () => {
               
               {/* Name - smaller than prize */}
               <div className="relative">
-                <h2 className="text-[3vw] font-display font-black text-white tracking-wide drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+                <h2 className="text-[2.5vw] font-display font-black text-white tracking-wide drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
                   {currentPlayer.name}
                 </h2>
               </div>
             </div>
           )}
           
-          {/* Prize Box - Viewport scaled */}
-          <div className={`mb-[2vh] ${prizeAnimationPhase === 'box' || prizeAnimationPhase === 'revealed' ? 'opacity-100' : 'opacity-0'} transition-opacity duration-500`}>
+          {/* Prize Box - Compact viewport scaled */}
+          <div className={`flex-1 flex items-center justify-center min-h-0 ${prizeAnimationPhase === 'box' || prizeAnimationPhase === 'revealed' ? 'opacity-100' : 'opacity-0'} transition-opacity duration-500`}>
             {prizeAnimationPhase === 'box' && !prizeRevealed ? (
-              // Mystery Box - Viewport scaled
+              // Mystery Box - Compact
               <div className="relative inline-block">
                 {/* Pulsing glow behind box */}
                 <div className="absolute inset-0 -m-[1vw] bg-purple-500/30 blur-2xl rounded-3xl animate-pulse" />
                 
-                <div className="relative px-[5vw] py-[3vh] bg-gradient-to-br from-purple-900/60 via-pink-900/40 to-purple-900/60 border-4 border-dashed border-purple-400/80 rounded-3xl animate-prize-box-shake backdrop-blur-sm">
-                  <p className="text-[5vw] mb-[1vh] animate-bounce" style={{ animationDuration: '1s' }}>🎁</p>
-                  <p className="text-purple-200 font-display text-[2vw] font-black tracking-wider">
+                <div className="relative px-[4vw] py-[2vh] bg-gradient-to-br from-purple-900/60 via-pink-900/40 to-purple-900/60 border-4 border-dashed border-purple-400/80 rounded-3xl animate-prize-box-shake backdrop-blur-sm">
+                  <p className="text-[4vw] mb-[0.5vh] animate-bounce" style={{ animationDuration: '1s' }}>🎁</p>
+                  <p className="text-purple-200 font-display text-[1.8vw] font-black tracking-wider">
                     MYSTERY PRIZE
                   </p>
-                  <p className="text-purple-400/60 font-mono text-[0.9vw] mt-[0.5vh] animate-pulse">
+                  <p className="text-purple-400/60 font-mono text-[0.8vw] mt-[0.3vh] animate-pulse">
                     AWAITING REVEAL...
                   </p>
                 </div>
               </div>
             ) : prizeRevealed || prizeAnimationPhase === 'revealed' ? (
-              // Revealed Prize - Viewport scaled
+              // Revealed Prize - More compact
               <div className="relative inline-block animate-prize-reveal">
                 {/* Golden glow explosion */}
-                <div className="absolute inset-0 -m-[3vw] bg-yellow-400/50 blur-3xl rounded-3xl animate-pulse" />
+                <div className="absolute inset-0 -m-[2vw] bg-yellow-400/50 blur-3xl rounded-3xl animate-pulse" />
                 
-                <div className="relative w-full max-w-[80vw] mx-auto px-[3vw] py-[2vh] bg-gradient-to-br from-yellow-600/50 via-amber-500/60 to-yellow-600/50 border-4 border-yellow-400 rounded-3xl shadow-[0_0_100px_rgba(251,191,36,0.7)] backdrop-blur-sm">
+                <div className="relative w-full max-w-[75vw] mx-auto px-[2.5vw] py-[1.5vh] bg-gradient-to-br from-yellow-600/50 via-amber-500/60 to-yellow-600/50 border-4 border-yellow-400 rounded-3xl shadow-[0_0_100px_rgba(251,191,36,0.7)] backdrop-blur-sm">
                   {/* Prize icon with glow */}
-                  <div className="flex justify-center mb-[1vh]">
+                  <div className="flex justify-center mb-[0.5vh]">
                     <div className="relative">
-                      <div className="absolute inset-0 -m-[1vw] bg-yellow-400/60 blur-2xl rounded-full animate-pulse" />
-                      <p className="relative text-[4vw] animate-bounce" style={{ animationDuration: '0.5s' }}>🏆</p>
+                      <div className="absolute inset-0 -m-[0.8vw] bg-yellow-400/60 blur-2xl rounded-full animate-pulse" />
+                      <p className="relative text-[3vw] animate-bounce" style={{ animationDuration: '0.5s' }}>🏆</p>
                     </div>
                   </div>
                   
-                  {/* Prize name - ULTIMATE SIZE */}
-                  <p className="text-yellow-100 font-display text-[4.5vw] font-black tracking-wide drop-shadow-[0_0_40px_rgba(251,191,36,0.9)] text-center leading-tight">
+                  {/* Prize name - Large but fitting */}
+                  <p className="text-yellow-100 font-display text-[4vw] font-black tracking-wide drop-shadow-[0_0_40px_rgba(251,191,36,0.9)] text-center leading-tight">
                     {prizeData?.prize || 'PRIZE'}
                   </p>
                   
                   {/* Description */}
-                  <p className="text-yellow-300/90 font-mono text-[1.3vw] mt-[1vh] tracking-widest text-center">
+                  <p className="text-yellow-300/90 font-mono text-[1.1vw] mt-[0.5vh] tracking-widest text-center">
                     {prizeData?.description || 'Congratulations!'}
                   </p>
                   
                   {/* Decorative lines */}
-                  <div className="flex items-center justify-center gap-[1vw] mt-[1vh]">
-                    <div className="w-[8vw] h-1 bg-gradient-to-r from-transparent to-yellow-400 rounded-full" />
-                    <span className="text-yellow-400 text-[2vw]">✦</span>
-                    <div className="w-[8vw] h-1 bg-gradient-to-l from-transparent to-yellow-400 rounded-full" />
+                  <div className="flex items-center justify-center gap-[0.8vw] mt-[0.5vh]">
+                    <div className="w-[6vw] h-1 bg-gradient-to-r from-transparent to-yellow-400 rounded-full" />
+                    <span className="text-yellow-400 text-[1.5vw]">✦</span>
+                    <div className="w-[6vw] h-1 bg-gradient-to-l from-transparent to-yellow-400 rounded-full" />
                   </div>
                 </div>
               </div>
             ) : null}
           </div>
           
-          {/* Status text - Viewport scaled */}
+          {/* Status text - Compact */}
           {prizeAnimationPhase === 'box' && (
-            <div className="animate-fadeIn text-center">
-              <p className={`font-display text-[1.5vw] font-bold tracking-[0.2em] transition-colors duration-500 ${
+            <div className="animate-fadeIn text-center flex-shrink-0 pb-[1vh]">
+              <p className={`font-display text-[1.3vw] font-bold tracking-[0.2em] transition-colors duration-500 ${
                 prizeRevealed ? 'text-yellow-400' : 'text-cyan-400/80'
               }`}>
                 {!prizeRevealed ? 'REVEAL THE PRIZE' : isLastPrize ? (roundNumber === 3 ? 'CROWN THE CHAMPIONS' : 'VIEW STANDINGS') : 'NEXT WINNER'}
               </p>
               
-              <div className="flex items-center justify-center gap-[0.5vw] mt-[1vh]">
+              <div className="flex items-center justify-center gap-[0.4vw] mt-[0.5vh]">
                 {eliminatedPositions.map((_, idx) => (
                   <div
                     key={idx}
-                    className={`w-[0.8vw] h-[0.8vw] rounded-full transition-all duration-300 ${
+                    className={`w-[0.6vw] h-[0.6vw] rounded-full transition-all duration-300 ${
                       idx < prizeRevealIndex ? 'bg-yellow-400' : 
                       idx === prizeRevealIndex ? (prizeRevealed ? 'bg-yellow-400 scale-125' : 'bg-purple-400 animate-pulse') : 
                       'bg-slate-600'
