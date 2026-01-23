@@ -3385,12 +3385,8 @@ const MainStage = () => {
                     
                     {/* Race Track */}
                     <div className="relative">
-                      {/* Finish line */}
-                      <div className="absolute right-0 top-0 bottom-0 w-2 bg-gradient-to-b from-emerald-400 via-yellow-400 to-emerald-400 rounded-full shadow-[0_0_20px_rgba(52,211,153,0.5)]" />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-5xl animate-pulse">🏁</div>
-                      
-                      {/* Player tracks */}
-                      <div className="space-y-4 pr-20">
+                      {/* Player tracks - using flex layout to prevent overlapping */}
+                      <div className="space-y-4">
                         {sortedPlayers.map((player, index) => {
                           // Check if player finished by progress status OR by having a score
                           const isFinished = player.progress?.status === 'finished' || player.score !== undefined;
@@ -3405,11 +3401,22 @@ const MainStage = () => {
                           const finishRank = isFinished ? sortedPlayers.filter((p, i) => i < index && (p.progress?.status === 'finished' || p.score !== undefined)).length + 1 : null;
 
                           return (
-                            <div key={player.id} className="relative h-14 group">
-                              {/* Track background with gradient */}
-                              <div className="absolute inset-y-0 left-0 right-0 flex items-center">
+                            <div key={player.id} className="flex items-center gap-4 h-14">
+                              {/* Player name - fixed width */}
+                              <div className="w-28 flex-shrink-0">
+                                <div className={`px-3 py-1.5 rounded-lg text-sm font-bold font-mono truncate text-center ${
+                                  isFinished ? 'bg-emerald-900/90 text-emerald-300 border border-emerald-500/50' : 
+                                  isLeading ? 'bg-yellow-900/90 text-yellow-300 border border-yellow-500/50' : 
+                                  'bg-slate-900/90 text-slate-300 border border-slate-600/50'
+                                }`}>
+                                  {player.name}
+                                </div>
+                              </div>
+                              
+                              {/* Track - flexible width */}
+                              <div className="flex-1 relative h-full flex items-center">
+                                {/* Track background */}
                                 <div className="h-3 w-full bg-slate-800/80 rounded-full overflow-hidden border border-slate-700/50">
-                                  {/* Progress fill */}
                                   <div 
                                     className={`h-full transition-all duration-300 ease-out rounded-full ${
                                       isFinished 
@@ -3421,99 +3428,82 @@ const MainStage = () => {
                                     style={{ width: `${progress}%` }}
                                   />
                                 </div>
-                              </div>
-                              
-                              {/* Track lines for visual depth */}
-                              <div className="absolute inset-y-0 left-0 right-0 flex items-center pointer-events-none">
-                                <div className="h-3 w-full flex">
-                                  {Array.from({ length: 20 }).map((_, i) => (
-                                    <div key={i} className="flex-1 border-r border-slate-600/20 h-full" />
-                                  ))}
+                                
+                                {/* Track lines overlay */}
+                                <div className="absolute inset-0 flex items-center pointer-events-none">
+                                  <div className="h-3 w-full flex">
+                                    {Array.from({ length: 10 }).map((_, i) => (
+                                      <div key={i} className="flex-1 border-r border-slate-600/20 h-full" />
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                              
-                              {/* Player avatar - positioned on track */}
-                              <div 
-                                className="absolute top-1/2 -translate-y-1/2 transition-all duration-300 ease-out z-10"
-                                style={{ left: `calc(${Math.min(progress, 100)}% - ${progress > 50 ? '28px' : '0px'})` }}
-                              >
-                                <div className={`relative ${!isFinished && progress > 0 ? 'animate-bounce' : ''}`}>
-                                  {/* Glow effect for avatar */}
-                                  <div className={`absolute inset-0 rounded-full blur-md ${
-                                    isFinished ? 'bg-emerald-400/50' : isLeading ? 'bg-yellow-400/50' : 'bg-cyan-400/30'
-                                  }`} />
-                                  
-                                  {/* Avatar */}
-                                  <div className={`relative w-12 h-12 rounded-full overflow-hidden border-3 shadow-lg ${
-                                    isFinished ? 'border-emerald-400 shadow-emerald-500/50' : isLeading ? 'border-yellow-400 shadow-yellow-500/50' : 'border-slate-500'
-                                  }`}>
-                                    {player.photo_url ? (
-                                      <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: player.avatar_color }}>
-                                        {player.name[0]}
+                                
+                                {/* Player avatar on track */}
+                                <div 
+                                  className="absolute top-1/2 -translate-y-1/2 transition-all duration-300 ease-out z-10"
+                                  style={{ left: `calc(${Math.min(progress, 98)}% - 24px)` }}
+                                >
+                                  <div className={`relative ${!isFinished && progress > 0 ? 'animate-bounce' : ''}`}>
+                                    <div className={`absolute inset-0 rounded-full blur-md ${
+                                      isFinished ? 'bg-emerald-400/50' : isLeading ? 'bg-yellow-400/50' : 'bg-cyan-400/30'
+                                    }`} />
+                                    <div className={`relative w-10 h-10 rounded-full overflow-hidden border-2 shadow-lg ${
+                                      isFinished ? 'border-emerald-400 shadow-emerald-500/50' : isLeading ? 'border-yellow-400 shadow-yellow-500/50' : 'border-slate-500'
+                                    }`}>
+                                      {player.photo_url ? (
+                                        <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: player.avatar_color }}>
+                                          {player.name[0]}
+                                        </div>
+                                      )}
+                                    </div>
+                                    {isLeading && !isFinished && <div className="absolute -top-1 -right-1 text-xs">👑</div>}
+                                    {isFinished && finishRank && (
+                                      <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                                        finishRank === 1 ? 'bg-yellow-400 text-yellow-900' : 
+                                        finishRank === 2 ? 'bg-slate-300 text-slate-800' : 
+                                        finishRank === 3 ? 'bg-amber-600 text-white' : 
+                                        'bg-emerald-500 text-white'
+                                      }`}>
+                                        {finishRank}
+                                      </div>
+                                    )}
+                                    {!isFinished && progress > 0 && (
+                                      <div className="absolute -left-3 top-1/2 -translate-y-1/2 flex gap-0.5 opacity-60">
+                                        <div className="w-2 h-0.5 bg-cyan-400 rounded-full animate-pulse" />
+                                        <div className="w-1 h-0.5 bg-cyan-400/50 rounded-full animate-pulse" />
                                       </div>
                                     )}
                                   </div>
-                                  
-                                  {/* Crown for leader */}
-                                  {isLeading && !isFinished && (
-                                    <div className="absolute -top-2 -right-2 text-lg animate-bounce">👑</div>
-                                  )}
-                                  
-                                  {/* Finish rank badge */}
-                                  {isFinished && finishRank && (
-                                    <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-lg ${
-                                      finishRank === 1 ? 'bg-yellow-400 text-yellow-900' : 
-                                      finishRank === 2 ? 'bg-slate-300 text-slate-800' : 
-                                      finishRank === 3 ? 'bg-amber-600 text-white' : 
-                                      'bg-emerald-500 text-white'
-                                    }`}>
-                                      {finishRank}
-                                    </div>
-                                  )}
-                                  
-                                  {/* Speed lines when running */}
-                                  {!isFinished && progress > 0 && (
-                                    <div className="absolute -left-4 top-1/2 -translate-y-1/2 flex gap-0.5 opacity-60">
-                                      <div className="w-3 h-0.5 bg-cyan-400 rounded-full animate-pulse" />
-                                      <div className="w-2 h-0.5 bg-cyan-400/70 rounded-full animate-pulse" style={{ animationDelay: '0.1s' }} />
-                                      <div className="w-1 h-0.5 bg-cyan-400/40 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
-                                    </div>
-                                  )}
                                 </div>
                               </div>
                               
-                              {/* Player name label */}
-                              <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2">
-                                <div className={`px-3 py-1 rounded-lg text-sm font-bold font-mono whitespace-nowrap shadow-lg ${
-                                  isFinished ? 'bg-emerald-900/90 text-emerald-300 border border-emerald-500/50' : 
-                                  isLeading ? 'bg-yellow-900/90 text-yellow-300 border border-yellow-500/50' : 
-                                  'bg-slate-900/90 text-slate-300 border border-slate-600/50'
-                                }`}>
-                                  {player.name}
-                                </div>
+                              {/* Finish line marker */}
+                              <div className="w-8 flex-shrink-0 flex items-center justify-center">
+                                <span className="text-2xl">🏁</span>
                               </div>
                               
-                              {/* Finish time display */}
-                              {isFinished && finishTime && (
-                                <div className="absolute right-24 top-1/2 -translate-y-1/2">
-                                  <div className="px-4 py-1.5 rounded-xl bg-emerald-500/20 border-2 border-emerald-400/60 shadow-[0_0_15px_rgba(52,211,153,0.3)]">
-                                    <span className="text-emerald-400 font-mono font-bold text-lg">
+                              {/* Time/Status - fixed width */}
+                              <div className="w-24 flex-shrink-0">
+                                {isFinished && finishTime ? (
+                                  <div className="px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-400/60 text-center">
+                                    <span className="text-emerald-400 font-mono font-bold">
                                       {finishTime.toFixed(2)}s
                                     </span>
                                   </div>
-                                </div>
-                              )}
-                              
-                              {/* Progress percentage for non-finished */}
-                              {!isFinished && progress > 0 && (
-                                <div className="absolute right-24 top-1/2 -translate-y-1/2">
-                                  <span className="text-cyan-400/80 font-mono text-sm font-bold">
-                                    {progress.toFixed(0)}%
-                                  </span>
-                                </div>
-                              )}
+                                ) : progress > 0 ? (
+                                  <div className="text-center">
+                                    <span className="text-cyan-400/80 font-mono text-sm font-bold">
+                                      {progress.toFixed(0)}%
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="text-center">
+                                    <span className="text-slate-500 font-mono text-xs">READY</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           );
                         })}
