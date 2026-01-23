@@ -48,7 +48,7 @@ const STORY_SLIDES = [
   { id: 12, text: 'WILL SHAPE YOUR FATE', state: 'speaking', startTime: 31.5, showAvatar: true },
   { id: 13, text: 'THERE ARE NO SECOND CHANCES', state: 'scanning', startTime: 34.0, showAvatar: true },
   { id: 14, text: 'PREPARE YOURSELVES', state: 'speaking', startTime: 37.0, showAvatar: true },
-  { id: 15, text: 'THE CYBER GENESIS TRIALS', state: 'celebrating', startTime: 39.5, showAvatar: true, highlight: true },
+  { id: 15, text: 'THE CYBER GENESIS', state: 'celebrating', startTime: 39.5, showAvatar: true, highlight: true },
   { id: 16, text: 'BEGINS NOW!', state: 'celebrating', startTime: 42.5, showAvatar: true, highlight: true },
 ];
 
@@ -789,7 +789,7 @@ const MainStage = () => {
       audio.volume = 1.0;
       audio.preload = 'auto';
       
-      // Subtitle anticipation: show text slightly BEFORE AVA speaks it (in seconds)
+      // Subtitle anticipation: show text slightly BEFORE AIVA speaks it (in seconds)
       // This gives viewers time to read as AVA starts speaking
       const SUBTITLE_ANTICIPATION = 0.3;
       
@@ -1428,7 +1428,7 @@ const MainStage = () => {
         <div className="relative z-10 p-6 flex items-center justify-between">
           <div className="flex items-center gap-3 text-cyan-400 font-mono text-sm">
             <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
-            <span className="tracking-widest">AVA v2.0</span>
+            <span className="tracking-widest">AIVA v2.0</span>
           </div>
           
           {/* Audio playing indicator */}
@@ -1447,7 +1447,7 @@ const MainStage = () => {
                   />
                 ))}
               </div>
-              <span className="text-pink-400 font-mono text-xs tracking-wider">AVA SPEAKING</span>
+              <span className="text-pink-400 font-mono text-xs tracking-wider">AIVA SPEAKING</span>
             </div>
           )}
           
