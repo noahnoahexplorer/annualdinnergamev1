@@ -1748,104 +1748,104 @@ const MainStage = () => {
     const playerLabel = 'CANDIDATES';
     
     return (
-      <div className="h-screen w-screen p-[2vw] cyber-bg relative overflow-hidden">
+      <div className="h-screen w-screen p-[1.5vw] cyber-bg relative overflow-hidden flex">
         <div className="grid-overlay" />
         
-        {/* 3D Brand Logo - Fixed left side, vertically centered */}
-        <div className="fixed left-0 top-0 bottom-0 w-[22vw] z-10 flex items-center justify-center">
+        {/* 3D Brand Logo - Left side */}
+        <div className="w-[20vw] flex-shrink-0 flex items-center justify-center">
           <div className="relative flex flex-col items-center">
             {/* Ambient glow */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-              <div className="w-[18vw] h-[18vw] bg-gradient-to-r from-pink-500/30 via-purple-500/20 to-blue-500/30 rounded-full blur-[60px] animate-pulse" />
+              <div className="w-[16vw] h-[16vw] bg-gradient-to-r from-pink-500/30 via-purple-500/20 to-blue-500/30 rounded-full blur-[60px] animate-pulse" />
             </div>
-            {/* 3D Logo - larger size */}
-            <div className="relative w-[18vw] h-[18vw]">
+            {/* 3D Logo */}
+            <div className="relative w-[14vw] h-[14vw]">
               <BrandLogo3D />
             </div>
             <div className="mt-[1vh] flex items-center gap-[0.5vw] px-[1vw] py-[0.5vh] rounded-full bg-slate-900/90 backdrop-blur-sm border-2 border-cyan-500/50">
-              <span className="w-[0.6vw] h-[0.6vw] bg-cyan-400 rounded-full animate-pulse" />
+              <span className="w-[0.5vw] h-[0.5vw] bg-cyan-400 rounded-full animate-pulse" />
               <span className="text-cyan-400 text-[1vw] font-mono font-black tracking-widest">ROUND 0{roundNumber}</span>
             </div>
           </div>
         </div>
 
-        <div className="relative z-10 ml-[420px]">
+        {/* Main Content - Right side */}
+        <div className="flex-1 flex flex-col relative z-10 min-w-0">
           {/* Header */}
-          <div className="text-center mb-10">
-            <img src="/title_CyberGenesis.png" alt="Cyber Genesis" className="h-28 object-contain mx-auto mb-6 genesis-glow" />
-            <p className="text-3xl text-slate-300 font-mono font-bold tracking-wide">{lobbyTitle}</p>
+          <div className="text-center py-[1vh] flex-shrink-0">
+            <img src="/title_CyberGenesis.png" alt="Cyber Genesis" className="h-[8vh] object-contain mx-auto mb-[0.5vh] genesis-glow" />
+            <p className="text-[1.8vw] text-slate-300 font-mono font-bold tracking-wide">{lobbyTitle}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-10 max-w-6xl mx-auto">
+          {/* Grid - QR and Players */}
+          <div className="grid grid-cols-2 gap-[1.5vw] flex-1 min-h-0">
             {/* QR Code */}
-            <div className="cyber-card rounded-3xl p-10 neon-border-purple text-center">
-              <h2 className="text-4xl font-black text-white mb-8 font-display tracking-wider">SCAN TO ENTER</h2>
-              <div className="qr-container bg-white p-8 rounded-2xl inline-block mb-8">
-                <QRCodeSVG value={joinUrl} size={240} />
+            <div className="cyber-card rounded-2xl p-[1.5vw] neon-border-purple flex flex-col items-center justify-center">
+              <h2 className="text-[2vw] font-black text-white mb-[1vh] font-display tracking-wider">SCAN TO ENTER</h2>
+              <div className="qr-container bg-white p-[1vw] rounded-xl inline-block mb-[1vh]">
+                <QRCodeSVG value={joinUrl} size={Math.min(180, window.innerWidth * 0.12)} />
               </div>
-              <p className="text-slate-400 font-mono text-sm break-all font-bold">{joinUrl}</p>
-              <div className="mt-8 flex items-center justify-center gap-4 text-cyan-400">
-                <Users className="w-10 h-10" />
-                <span className="text-5xl font-black font-display">{activePlayers.length}/{maxPlayers}</span>
+              <p className="text-slate-400 font-mono text-[0.8vw] break-all font-bold max-w-full truncate">{joinUrl}</p>
+              <div className="mt-[1vh] flex items-center justify-center gap-[0.8vw] text-cyan-400">
+                <Users className="w-[2vw] h-[2vw]" />
+                <span className="text-[3vw] font-black font-display">{activePlayers.length}/{maxPlayers}</span>
               </div>
             </div>
 
             {/* Players Grid */}
-            <div className="cyber-card rounded-3xl p-10 neon-border">
-              <h2 className="text-4xl font-black text-white mb-8 font-display tracking-wider text-center">{playerLabel}</h2>
-              <div className={`grid gap-5 ${roundNumber === 3 ? 'grid-cols-3' : roundNumber === 2 ? 'grid-cols-3' : 'grid-cols-5'}`}>
+            <div className="cyber-card rounded-2xl p-[1.5vw] neon-border flex flex-col">
+              <h2 className="text-[2vw] font-black text-white mb-[1vh] font-display tracking-wider text-center flex-shrink-0">{playerLabel}</h2>
+              <div className={`grid gap-[1vw] flex-1 ${roundNumber === 3 ? 'grid-cols-3' : roundNumber === 2 ? 'grid-cols-3' : 'grid-cols-5'}`}>
                 {activePlayers.map((player) => (
                   <div key={player.id} className="flex flex-col items-center animate-bounce-in relative group">
-                    <div className="w-20 h-20 rounded-full overflow-hidden border-4" style={{ borderColor: player.avatar_color }}>
+                    <div className="w-[4vw] h-[4vw] rounded-full overflow-hidden border-[3px]" style={{ borderColor: player.avatar_color }}>
                       {player.photo_url ? (
                         <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-white text-2xl font-bold" style={{ backgroundColor: player.avatar_color }}>
+                        <div className="w-full h-full flex items-center justify-center text-white text-[1.2vw] font-bold" style={{ backgroundColor: player.avatar_color }}>
                           {player.name[0]}
                         </div>
                       )}
                     </div>
-                    <button onClick={() => kickPlayer(player.id)} className="absolute -top-1 -right-1 w-7 h-7 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <UserX className="w-4 h-4 text-white" />
+                    <button onClick={() => kickPlayer(player.id)} className="absolute -top-1 -right-1 w-[1.5vw] h-[1.5vw] bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <UserX className="w-[0.8vw] h-[0.8vw] text-white" />
                     </button>
-                    <p className="text-white text-sm mt-2 truncate max-w-full font-mono font-bold">{player.name}</p>
+                    <p className="text-white text-[0.9vw] mt-[0.5vh] truncate max-w-full font-mono font-bold">{player.name}</p>
                   </div>
                 ))}
                 {Array.from({ length: Math.max(0, maxPlayers - activePlayers.length) }).map((_, i) => (
                   <div key={i} className="flex flex-col items-center opacity-30">
-                    <div className="w-20 h-20 rounded-full border-3 border-dashed border-slate-600 flex items-center justify-center">
-                      <span className="text-slate-500 text-3xl font-bold">?</span>
+                    <div className="w-[4vw] h-[4vw] rounded-full border-2 border-dashed border-slate-600 flex items-center justify-center">
+                      <span className="text-slate-500 text-[1.5vw] font-bold">?</span>
                     </div>
-                    <p className="text-slate-500 text-sm mt-2 font-mono font-bold">...</p>
+                    <p className="text-slate-500 text-[0.9vw] mt-[0.5vh] font-mono font-bold">...</p>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Start Button */}
-          <div className="text-center mt-10">
-            <button onClick={() => startTrialIntro(roundNumber)} disabled={activePlayers.length === 0} className="cyber-btn px-16 py-6 rounded-2xl flex items-center justify-center gap-6 mx-auto disabled:opacity-50 text-3xl font-black">
-              <Play className="w-12 h-12" />
+          {/* Start Button & Round Info */}
+          <div className="py-[1.5vh] flex items-center justify-center gap-[2vw] flex-shrink-0">
+            <button onClick={() => startTrialIntro(roundNumber)} disabled={activePlayers.length === 0} className="cyber-btn px-[3vw] py-[1.2vh] rounded-xl flex items-center justify-center gap-[1vw] disabled:opacity-50 text-[1.5vw] font-black">
+              <Play className="w-[2vw] h-[2vw]" />
               <span className="font-display tracking-wider">BEGIN ROUND 0{roundNumber}</span>
             </button>
-          </div>
-
-          {/* Current round info */}
-          {(() => {
-            const info = ROUND_INSTRUCTIONS[roundNumber as keyof typeof ROUND_INSTRUCTIONS];
-            return info ? (
-              <div className="flex items-center justify-center gap-6 mt-10">
-                <div className="flex items-center gap-4 px-8 py-4 rounded-2xl border-2 border-cyan-500/40 bg-slate-900/50">
-                  <span className="text-4xl">{info.icon}</span>
+            
+            {/* Current round info - inline */}
+            {(() => {
+              const info = ROUND_INSTRUCTIONS[roundNumber as keyof typeof ROUND_INSTRUCTIONS];
+              return info ? (
+                <div className="flex items-center gap-[0.8vw] px-[1.5vw] py-[1vh] rounded-xl border-2 border-cyan-500/40 bg-slate-900/50">
+                  <span className="text-[2vw]">{info.icon}</span>
                   <div>
-                    <span className="font-display text-2xl text-cyan-400 font-bold">ROUND 0{roundNumber}</span>
-                    <p className="font-mono text-lg text-slate-300 font-bold">{STAGE_CODENAMES[roundNumber]}</p>
+                    <span className="font-display text-[1.2vw] text-cyan-400 font-bold">ROUND 0{roundNumber}</span>
+                    <p className="font-mono text-[0.9vw] text-slate-300 font-bold">{STAGE_CODENAMES[roundNumber]}</p>
                   </div>
                 </div>
-              </div>
-            ) : null;
-          })()}
+              ) : null;
+            })()}
+          </div>
         </div>
 
         {/* Trial Intro Modal */}
@@ -1936,34 +1936,33 @@ const MainStage = () => {
       const color = colorMap[info.color as keyof typeof colorMap];
       
       return (
-        <div className="h-screen w-screen cyber-bg relative overflow-hidden flex items-center justify-center p-[2vw]">
+        <div className="h-screen w-screen cyber-bg relative overflow-hidden flex items-center justify-center p-[1.5vw]">
           <div className="grid-overlay" />
           <div className="scanline" />
           
-          <div className="max-w-5xl w-full animate-bounce-in relative z-10">
-            <div className="cyber-card rounded-3xl overflow-hidden" style={{ border: `4px solid ${color}`, boxShadow: `0 0 50px ${color}50` }}>
-              {/* Header */}
-              <div className="p-10 text-center" style={{ background: `linear-gradient(135deg, ${color}20, transparent)` }}>
-                <span className="text-9xl mb-6 block">{info.icon}</span>
-                <h1 className="text-6xl font-display font-black text-white mb-4 tracking-wide">{info.title}</h1>
-                <p className="text-2xl font-mono font-bold" style={{ color }}>{info.objective}</p>
+          <div className="w-full h-full flex items-center justify-center relative z-10">
+            <div className="cyber-card rounded-[1.5vw] overflow-hidden w-[90vw] max-h-[94vh] flex flex-col" style={{ border: `3px solid ${color}`, boxShadow: `0 0 50px ${color}50` }}>
+              {/* Header - compact */}
+              <div className="p-[1.5vh] text-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${color}20, transparent)` }}>
+                <span className="text-[4vw] block leading-none">{info.icon}</span>
+                <h1 className="text-[3.5vw] font-display font-black text-white tracking-wide">{info.title}</h1>
+                <p className="text-[1.2vw] font-mono font-bold" style={{ color }}>{info.objective}</p>
               </div>
 
-              {/* Rules */}
               {/* Rules - with demo for all rounds */}
-              <div className="p-6">
-                <div className="flex gap-6">
+              <div className="p-[1.5vw] flex-1 flex flex-col min-h-0">
+                <div className="flex gap-[1.5vw] flex-1 min-h-0">
                   {/* Rules list */}
-                  <div className="space-y-3 flex-1">
-                    <h3 className="text-4xl font-display font-black text-white mb-4">PROTOCOL RULES:</h3>
-                {info.rules.map((rule, idx) => (
-                      <div key={idx} className="flex items-center gap-4 p-4 rounded-xl bg-slate-900/50 border border-slate-700/50">
-                        <span className="w-14 h-14 rounded-full flex items-center justify-center font-black text-2xl shrink-0" style={{ backgroundColor: `${color}40`, color }}>
-                      {idx + 1}
-                    </span>
-                        <p className="text-white font-display text-2xl font-black uppercase tracking-wide">{rule}</p>
-                  </div>
-                ))}
+                  <div className="flex-1 flex flex-col gap-[0.8vh]">
+                    <h3 className="text-[2vw] font-display font-black text-white">PROTOCOL RULES:</h3>
+                    {info.rules.map((rule, idx) => (
+                      <div key={idx} className="flex items-center gap-[0.8vw] p-[0.8vh] rounded-xl bg-slate-900/50 border border-slate-700/50">
+                        <span className="w-[2.5vw] h-[2.5vw] rounded-full flex items-center justify-center font-black text-[1.2vw] shrink-0" style={{ backgroundColor: `${color}40`, color }}>
+                          {idx + 1}
+                        </span>
+                        <p className="text-white font-display text-[1.3vw] font-black uppercase tracking-wide leading-tight">{rule}</p>
+                      </div>
+                    ))}
                   </div>
                   
                   {/* Demo Animations */}
@@ -1974,23 +1973,23 @@ const MainStage = () => {
 
                 {/* Elimination warning - only show if not empty */}
                 {info.elimination && (
-                  <div className="p-6 rounded-xl bg-red-500/20 border-2 border-red-500/50 mt-6">
-                  <div className="flex items-center gap-4">
-                    <Skull className="w-10 h-10 text-red-400" />
-                    <p className="text-red-400 font-display text-2xl font-black">ELIMINATION: {info.elimination}</p>
+                  <div className="p-[1vh] rounded-xl bg-red-500/20 border-2 border-red-500/50 mt-[1vh] flex-shrink-0">
+                    <div className="flex items-center gap-[0.8vw]">
+                      <Skull className="w-[2vw] h-[2vw] text-red-400" />
+                      <p className="text-red-400 font-display text-[1.3vw] font-black">ELIMINATION: {info.elimination}</p>
+                    </div>
                   </div>
-                </div>
                 )}
 
                 {/* Tip */}
-                <div className="text-center mt-8">
-                  <p className="text-3xl font-display font-bold" style={{ color }}>{info.tip}</p>
+                <div className="text-center mt-[1vh] flex-shrink-0">
+                  <p className="text-[1.5vw] font-display font-bold" style={{ color }}>{info.tip}</p>
                 </div>
 
                 {/* Start button */}
-                <div className="flex justify-center mt-8">
-                  <button onClick={() => beginTrial(nextStage)} className="cyber-btn px-16 py-6 rounded-2xl flex items-center gap-6 text-3xl font-black">
-                    <Play className="w-10 h-10" />
+                <div className="flex justify-center mt-[1.5vh] flex-shrink-0">
+                  <button onClick={() => beginTrial(nextStage)} className="cyber-btn px-[3vw] py-[1.2vh] rounded-xl flex items-center gap-[1vw] text-[1.5vw] font-black">
+                    <Play className="w-[2vw] h-[2vw]" />
                     <span className="font-display">BEGIN PROTOCOL</span>
                   </button>
                 </div>
@@ -2050,119 +2049,198 @@ const MainStage = () => {
             </p>
           </div>
           
-          {/* Two-Column Standings - Fills remaining space */}
-          <div className="flex-1 grid grid-cols-2 gap-[2vw] min-h-0">
-            {/* Left Column: Ranks 1-5 */}
-            <div className="bg-slate-900/80 border-2 border-cyan-400/30 rounded-2xl overflow-hidden flex flex-col">
-              <div className="px-[1vw] py-[1vh] bg-slate-800/60 border-b border-cyan-400/20">
-                <span className="text-cyan-400 font-mono text-[1.2vw] font-bold">RANK 1-5</span>
-              </div>
-              <div className="flex-1 flex flex-col divide-y divide-slate-700/30">
-                {eliminationRankings.slice(0, 5).map((player, index) => {
-                  const rank = index + 1;
-                  const isEliminated = rank > eliminationRankings.length - eliminateCount;
-                  const isTop3 = rank <= 3;
-                  
-                  let scoreDisplay = '---';
-                  if (player.score !== undefined && player.score !== Infinity) {
-                    scoreDisplay = currentStage === 2 ? `${player.score}pts` : `${player.score.toFixed(2)}s`;
-                  }
-                  
-                  return (
-                    <div 
-                      key={player.id}
-                      className={`flex-1 flex items-center gap-[1vw] px-[1.5vw] ${
-                        isEliminated ? 'bg-red-950/30' : isTop3 ? 'bg-yellow-950/20' : ''
-                      }`}
-                    >
-                      <div className={`w-[3vw] h-[3vw] rounded-full flex items-center justify-center font-display font-black text-[1.5vw] flex-shrink-0 ${
-                        rank === 1 ? 'bg-yellow-500 text-yellow-900' : 
-                        rank === 2 ? 'bg-slate-300 text-slate-800' : 
-                        rank === 3 ? 'bg-amber-600 text-amber-100' :
-                        isEliminated ? 'bg-red-500/30 text-red-400' : 'bg-slate-700 text-slate-300'
-                      }`}>
-                        {rank}
-                      </div>
-                      <div className={`w-[4vw] h-[4vw] rounded-full overflow-hidden border-[3px] flex-shrink-0 ${
-                        isEliminated ? 'border-red-500/50' : 'border-cyan-400/30'
-                      }`}>
-                        {player.photo_url ? (
-                          <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[1.5vw] font-bold" style={{ backgroundColor: player.avatar_color || '#6366f1' }}>
-                            {player.name?.charAt(0) || '?'}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-[1.8vw] font-display font-bold truncate ${
-                          isEliminated ? 'text-red-400' : isTop3 ? 'text-yellow-400' : 'text-white'
-                        }`}>
-                          {player.name}
-                        </p>
-                      </div>
-                      <span className={`text-[1.8vw] font-mono font-bold flex-shrink-0 ${
-                        isEliminated ? 'text-red-400' : isTop3 ? 'text-yellow-400' : 'text-cyan-400'
-                      }`}>
-                        {scoreDisplay}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+          {/* Dynamic Standings - Adapts to number of candidates */}
+          {(() => {
+            const totalCandidates = eliminationRankings.length;
+            const midpoint = Math.ceil(totalCandidates / 2);
+            const leftColumn = eliminationRankings.slice(0, midpoint);
+            const rightColumn = eliminationRankings.slice(midpoint);
+            const leftLabel = `RANK 1-${midpoint}`;
+            const rightLabel = rightColumn.length > 0 ? `RANK ${midpoint + 1}-${totalCandidates}` : '';
             
-            {/* Right Column: Ranks 6-10 */}
-            <div className="bg-slate-900/80 border-2 border-cyan-400/30 rounded-2xl overflow-hidden flex flex-col">
-              <div className="px-[1vw] py-[1vh] bg-slate-800/60 border-b border-cyan-400/20">
-                <span className="text-cyan-400 font-mono text-[1.2vw] font-bold">RANK 6-10</span>
-              </div>
-              <div className="flex-1 flex flex-col divide-y divide-slate-700/30">
-                {eliminationRankings.slice(5, 10).map((player, index) => {
-                  const rank = index + 6;
-                  const isEliminated = rank > eliminationRankings.length - eliminateCount;
-                  
-                  let scoreDisplay = '---';
-                  if (player.score !== undefined && player.score !== Infinity) {
-                    scoreDisplay = currentStage === 2 ? `${player.score}pts` : `${player.score.toFixed(2)}s`;
-                  }
-                  
-                  return (
-                    <div 
-                      key={player.id}
-                      className={`flex-1 flex items-center gap-[1vw] px-[1.5vw] ${isEliminated ? 'bg-red-950/30' : ''}`}
-                    >
-                      <div className={`w-[3vw] h-[3vw] rounded-full flex items-center justify-center font-display font-black text-[1.5vw] flex-shrink-0 ${
-                        isEliminated ? 'bg-red-500/30 text-red-400' : 'bg-slate-700 text-slate-300'
-                      }`}>
-                        {rank}
-                      </div>
-                      <div className={`w-[4vw] h-[4vw] rounded-full overflow-hidden border-[3px] flex-shrink-0 ${
-                        isEliminated ? 'border-red-500/50' : 'border-cyan-400/30'
-                      }`}>
-                        {player.photo_url ? (
-                          <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[1.5vw] font-bold" style={{ backgroundColor: player.avatar_color || '#6366f1' }}>
-                            {player.name?.charAt(0) || '?'}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-[1.8vw] font-display font-bold truncate ${isEliminated ? 'text-red-400' : 'text-white'}`}>
-                          {player.name}
-                        </p>
-                        {isEliminated && <p className="text-red-400/70 font-mono text-[0.8vw]">ELIMINATED</p>}
-                      </div>
-                      <span className={`text-[1.8vw] font-mono font-bold flex-shrink-0 ${isEliminated ? 'text-red-400' : 'text-cyan-400'}`}>
-                        {scoreDisplay}
-                      </span>
+            // Single column for 3 or fewer candidates
+            if (totalCandidates <= 3) {
+              return (
+                <div className="flex-1 flex justify-center min-h-0">
+                  <div className="w-[50vw] bg-slate-900/80 border-2 border-cyan-400/30 rounded-2xl overflow-hidden flex flex-col">
+                    <div className="px-[1vw] py-[1vh] bg-slate-800/60 border-b border-cyan-400/20">
+                      <span className="text-cyan-400 font-mono text-[1.2vw] font-bold">ALL CANDIDATES</span>
                     </div>
-                  );
-                })}
+                    <div className="flex-1 flex flex-col divide-y divide-slate-700/30">
+                      {eliminationRankings.map((player, index) => {
+                        const rank = index + 1;
+                        const isEliminated = rank > totalCandidates - eliminateCount;
+                        const isTop3 = rank <= 3;
+                        
+                        let scoreDisplay = '---';
+                        if (player.score !== undefined && player.score !== Infinity) {
+                          scoreDisplay = currentStage === 2 ? `${player.score}pts` : `${player.score.toFixed(2)}s`;
+                        }
+                        
+                        return (
+                          <div 
+                            key={player.id}
+                            className={`flex-1 flex items-center gap-[1vw] px-[1.5vw] ${
+                              isEliminated ? 'bg-red-950/30' : isTop3 ? 'bg-yellow-950/20' : ''
+                            }`}
+                          >
+                            <div className={`w-[3vw] h-[3vw] rounded-full flex items-center justify-center font-display font-black text-[1.5vw] flex-shrink-0 ${
+                              rank === 1 ? 'bg-yellow-500 text-yellow-900' : 
+                              rank === 2 ? 'bg-slate-300 text-slate-800' : 
+                              rank === 3 ? 'bg-amber-600 text-amber-100' :
+                              isEliminated ? 'bg-red-500/30 text-red-400' : 'bg-slate-700 text-slate-300'
+                            }`}>
+                              {rank}
+                            </div>
+                            <div className={`w-[4vw] h-[4vw] rounded-full overflow-hidden border-[3px] flex-shrink-0 ${
+                              isEliminated ? 'border-red-500/50' : 'border-cyan-400/30'
+                            }`}>
+                              {player.photo_url ? (
+                                <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-[1.5vw] font-bold" style={{ backgroundColor: player.avatar_color || '#6366f1' }}>
+                                  {player.name?.charAt(0) || '?'}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-[1.8vw] font-display font-bold truncate ${
+                                isEliminated ? 'text-red-400' : isTop3 ? 'text-yellow-400' : 'text-white'
+                              }`}>
+                                {player.name}
+                              </p>
+                              {isEliminated && <p className="text-red-400/70 font-mono text-[0.8vw]">ELIMINATED</p>}
+                            </div>
+                            <span className={`text-[1.8vw] font-mono font-bold flex-shrink-0 ${
+                              isEliminated ? 'text-red-400' : isTop3 ? 'text-yellow-400' : 'text-cyan-400'
+                            }`}>
+                              {scoreDisplay}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            
+            // Two columns for more candidates
+            return (
+              <div className="flex-1 grid grid-cols-2 gap-[2vw] min-h-0">
+                {/* Left Column */}
+                <div className="bg-slate-900/80 border-2 border-cyan-400/30 rounded-2xl overflow-hidden flex flex-col">
+                  <div className="px-[1vw] py-[1vh] bg-slate-800/60 border-b border-cyan-400/20">
+                    <span className="text-cyan-400 font-mono text-[1.2vw] font-bold">{leftLabel}</span>
+                  </div>
+                  <div className="flex-1 flex flex-col divide-y divide-slate-700/30">
+                    {leftColumn.map((player, index) => {
+                      const rank = index + 1;
+                      const isEliminated = rank > totalCandidates - eliminateCount;
+                      const isTop3 = rank <= 3;
+                      
+                      let scoreDisplay = '---';
+                      if (player.score !== undefined && player.score !== Infinity) {
+                        scoreDisplay = currentStage === 2 ? `${player.score}pts` : `${player.score.toFixed(2)}s`;
+                      }
+                      
+                      return (
+                        <div 
+                          key={player.id}
+                          className={`flex-1 flex items-center gap-[1vw] px-[1.5vw] ${
+                            isEliminated ? 'bg-red-950/30' : isTop3 ? 'bg-yellow-950/20' : ''
+                          }`}
+                        >
+                          <div className={`w-[3vw] h-[3vw] rounded-full flex items-center justify-center font-display font-black text-[1.5vw] flex-shrink-0 ${
+                            rank === 1 ? 'bg-yellow-500 text-yellow-900' : 
+                            rank === 2 ? 'bg-slate-300 text-slate-800' : 
+                            rank === 3 ? 'bg-amber-600 text-amber-100' :
+                            isEliminated ? 'bg-red-500/30 text-red-400' : 'bg-slate-700 text-slate-300'
+                          }`}>
+                            {rank}
+                          </div>
+                          <div className={`w-[4vw] h-[4vw] rounded-full overflow-hidden border-[3px] flex-shrink-0 ${
+                            isEliminated ? 'border-red-500/50' : 'border-cyan-400/30'
+                          }`}>
+                            {player.photo_url ? (
+                              <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[1.5vw] font-bold" style={{ backgroundColor: player.avatar_color || '#6366f1' }}>
+                                {player.name?.charAt(0) || '?'}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-[1.8vw] font-display font-bold truncate ${
+                              isEliminated ? 'text-red-400' : isTop3 ? 'text-yellow-400' : 'text-white'
+                            }`}>
+                              {player.name}
+                            </p>
+                          </div>
+                          <span className={`text-[1.8vw] font-mono font-bold flex-shrink-0 ${
+                            isEliminated ? 'text-red-400' : isTop3 ? 'text-yellow-400' : 'text-cyan-400'
+                          }`}>
+                            {scoreDisplay}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                
+                {/* Right Column */}
+                <div className="bg-slate-900/80 border-2 border-cyan-400/30 rounded-2xl overflow-hidden flex flex-col">
+                  <div className="px-[1vw] py-[1vh] bg-slate-800/60 border-b border-cyan-400/20">
+                    <span className="text-cyan-400 font-mono text-[1.2vw] font-bold">{rightLabel}</span>
+                  </div>
+                  <div className="flex-1 flex flex-col divide-y divide-slate-700/30">
+                    {rightColumn.map((player, index) => {
+                      const rank = midpoint + index + 1;
+                      const isEliminated = rank > totalCandidates - eliminateCount;
+                      
+                      let scoreDisplay = '---';
+                      if (player.score !== undefined && player.score !== Infinity) {
+                        scoreDisplay = currentStage === 2 ? `${player.score}pts` : `${player.score.toFixed(2)}s`;
+                      }
+                      
+                      return (
+                        <div 
+                          key={player.id}
+                          className={`flex-1 flex items-center gap-[1vw] px-[1.5vw] ${isEliminated ? 'bg-red-950/30' : ''}`}
+                        >
+                          <div className={`w-[3vw] h-[3vw] rounded-full flex items-center justify-center font-display font-black text-[1.5vw] flex-shrink-0 ${
+                            isEliminated ? 'bg-red-500/30 text-red-400' : 'bg-slate-700 text-slate-300'
+                          }`}>
+                            {rank}
+                          </div>
+                          <div className={`w-[4vw] h-[4vw] rounded-full overflow-hidden border-[3px] flex-shrink-0 ${
+                            isEliminated ? 'border-red-500/50' : 'border-cyan-400/30'
+                          }`}>
+                            {player.photo_url ? (
+                              <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[1.5vw] font-bold" style={{ backgroundColor: player.avatar_color || '#6366f1' }}>
+                                {player.name?.charAt(0) || '?'}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-[1.8vw] font-display font-bold truncate ${isEliminated ? 'text-red-400' : 'text-white'}`}>
+                              {player.name}
+                            </p>
+                            {isEliminated && <p className="text-red-400/70 font-mono text-[0.8vw]">ELIMINATED</p>}
+                          </div>
+                          <span className={`text-[1.8vw] font-mono font-bold flex-shrink-0 ${isEliminated ? 'text-red-400' : 'text-cyan-400'}`}>
+                            {scoreDisplay}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            );
+          })()}
           
           {/* Summary - Compact inline */}
           <div className="py-[1.5vh] flex items-center justify-center gap-[3vw]">
