@@ -1875,14 +1875,14 @@ const MainStage = () => {
                         {/* Rules list */}
                         <div className="space-y-3 flex-1">
                           <h3 className="text-4xl font-display font-black text-white mb-4">PROTOCOL RULES:</h3>
-                          {info.rules.map((rule, idx) => (
+                      {info.rules.map((rule, idx) => (
                             <div key={idx} className="flex items-center gap-4 p-4 rounded-xl bg-slate-900/50 border border-slate-700/50">
                               <span className="w-14 h-14 rounded-full flex items-center justify-center font-black text-2xl shrink-0" style={{ backgroundColor: `${color}40`, color }}>
-                                {idx + 1}
-                              </span>
+                            {idx + 1}
+                          </span>
                               <p className="text-white font-display text-2xl font-black uppercase tracking-wide">{rule}</p>
-                            </div>
-                          ))}
+                        </div>
+                      ))}
                         </div>
                         
                         {/* Demo Animations */}
@@ -1894,11 +1894,11 @@ const MainStage = () => {
                       {/* Elimination warning - only show if not empty */}
                       {info.elimination && (
                         <div className="p-6 rounded-xl bg-red-500/20 border-2 border-red-500/50 mt-6">
-                          <div className="flex items-center gap-4">
-                            <Skull className="w-10 h-10 text-red-400" />
-                            <p className="text-red-400 font-display text-2xl font-black">ELIMINATION: {info.elimination}</p>
-                          </div>
+                        <div className="flex items-center gap-4">
+                          <Skull className="w-10 h-10 text-red-400" />
+                          <p className="text-red-400 font-display text-2xl font-black">ELIMINATION: {info.elimination}</p>
                         </div>
+                      </div>
                       )}
 
                       {/* Tip */}
@@ -1956,14 +1956,14 @@ const MainStage = () => {
                   {/* Rules list */}
                   <div className="space-y-3 flex-1">
                     <h3 className="text-4xl font-display font-black text-white mb-4">PROTOCOL RULES:</h3>
-                    {info.rules.map((rule, idx) => (
+                {info.rules.map((rule, idx) => (
                       <div key={idx} className="flex items-center gap-4 p-4 rounded-xl bg-slate-900/50 border border-slate-700/50">
                         <span className="w-14 h-14 rounded-full flex items-center justify-center font-black text-2xl shrink-0" style={{ backgroundColor: `${color}40`, color }}>
-                          {idx + 1}
-                        </span>
+                      {idx + 1}
+                    </span>
                         <p className="text-white font-display text-2xl font-black uppercase tracking-wide">{rule}</p>
-                      </div>
-                    ))}
+                  </div>
+                ))}
                   </div>
                   
                   {/* Demo Animations */}
@@ -1975,11 +1975,11 @@ const MainStage = () => {
                 {/* Elimination warning - only show if not empty */}
                 {info.elimination && (
                   <div className="p-6 rounded-xl bg-red-500/20 border-2 border-red-500/50 mt-6">
-                    <div className="flex items-center gap-4">
-                      <Skull className="w-10 h-10 text-red-400" />
-                      <p className="text-red-400 font-display text-2xl font-black">ELIMINATION: {info.elimination}</p>
-                    </div>
+                  <div className="flex items-center gap-4">
+                    <Skull className="w-10 h-10 text-red-400" />
+                    <p className="text-red-400 font-display text-2xl font-black">ELIMINATION: {info.elimination}</p>
                   </div>
+                </div>
                 )}
 
                 {/* Tip */}
@@ -2853,14 +2853,14 @@ const MainStage = () => {
                               style={{ backgroundColor: thirdPlace?.avatar_color || '#6366f1' }}
                             >
                               {thirdPlace?.name?.charAt(0) || '?'}
-                            </div>
+                      </div>
                           )}
                         </div>
                         <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-10 py-3 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.6)]">
                           <span className="text-white font-display font-black text-2xl">3RD</span>
                         </div>
-                      </div>
-                      
+                    </div>
+                    
                       <h2 className="text-5xl md:text-6xl font-display font-black text-white mb-6 drop-shadow-[0_0_30px_rgba(245,158,11,0.5)]">
                         {thirdPlace?.name || 'BRONZE CHAMPION'}
                       </h2>
@@ -2873,7 +2873,7 @@ const MainStage = () => {
                             <div className="relative">
                               <div className="absolute inset-0 -m-4 bg-amber-400/60 blur-2xl rounded-full animate-pulse" />
                               <span className="relative text-7xl animate-bounce" style={{ animationDuration: '0.6s' }}>🥉</span>
-                            </div>
+                      </div>
                           </div>
                           <p className="text-amber-100 font-display text-5xl md:text-6xl lg:text-7xl font-black text-center leading-tight drop-shadow-[0_0_40px_rgba(245,158,11,0.9)]">
                             {thirdPrize?.prize || 'Travel Voucher to Maldives'}
@@ -2941,8 +2941,8 @@ const MainStage = () => {
                             <div className="relative">
                               <div className="absolute inset-0 -m-4 bg-slate-300/60 blur-2xl rounded-full animate-pulse" />
                               <span className="relative text-7xl animate-bounce" style={{ animationDuration: '0.6s' }}>🥈</span>
-                            </div>
-                          </div>
+                      </div>
+                    </div>
                           <p className="text-slate-100 font-display text-5xl md:text-6xl lg:text-7xl font-black text-center leading-tight drop-shadow-[0_0_40px_rgba(192,192,192,0.9)]">
                             {secondPrize?.prize || 'Travel Voucher to Japan'}
                           </p>
@@ -2953,9 +2953,9 @@ const MainStage = () => {
                             <div className="w-24 h-1 bg-gradient-to-r from-transparent to-slate-300 rounded-full" />
                             <span className="text-slate-300 text-4xl">🏆</span>
                             <div className="w-24 h-1 bg-gradient-to-l from-transparent to-slate-300 rounded-full" />
-                          </div>
-                        </div>
                       </div>
+                    </div>
+                  </div>
                     </div>
                   </div>
                 </div>
@@ -3028,15 +3028,15 @@ const MainStage = () => {
                           </div>
                         </div>
                       </div>
+                      </div>
                     </div>
-                  </div>
-                  
+                    
                 </div>
               )}
             </div>
           )}
-        </div>
-        
+                  </div>
+                  
         {/* Corner decorations */}
         <div className={`absolute top-8 left-8 w-24 h-24 border-l-2 border-t-2 rounded-tl-3xl transition-colors duration-500 ${
           championRevealStage === 'first' ? 'border-yellow-400/60' : 
@@ -3072,9 +3072,9 @@ const MainStage = () => {
               {championRevealStage === 'third' && 'Press ENTER → 2ND PLACE'}
               {championRevealStage === 'second' && 'Press ENTER → 1ST PLACE'}
             </p>
-          </div>
+                  </div>
         )}
-      </div>
+                </div>
     );
   }
 
@@ -3136,8 +3136,8 @@ const MainStage = () => {
                 animation: 'shutdown-line 3s ease-out forwards'
               }}
             />
-          </div>
-        )}
+            </div>
+          )}
         
         {/* BrandLogo3D - Large and centered */}
         <div className={`absolute inset-0 transition-all duration-2000 ${
@@ -3334,28 +3334,38 @@ const MainStage = () => {
           <div className="flex gap-6 items-start">
             {/* Main game area */}
             <div className="flex-1 min-w-0 max-w-4xl">
-              {/* Stage 1: Tap to Run - Enhanced Live Race */}
+              {/* Stage 1: Tap to Run - Enhanced Live Race with Smooth Overtaking */}
               {currentStage === 1 && (() => {
-                // Sort players: finished first (by time), then by progress
-                const sortedPlayers = [...playersWithProgress].sort((a, b) => {
-                  const aFinished = a.progress?.status === 'finished' || a.score !== undefined;
-                  const bFinished = b.progress?.status === 'finished' || b.score !== undefined;
-                  
-                  if (aFinished && bFinished) {
-                    // Both finished - sort by time (lower is better)
-                    const aTime = a.score ?? a.progress?.elapsed_time ?? Infinity;
-                    const bTime = b.score ?? b.progress?.elapsed_time ?? Infinity;
-                    return aTime - bTime;
+                // Calculate sorted positions for each player
+                const getPlayerRank = (player: PlayerWithProgress) => {
+                  const isFinished = player.progress?.status === 'finished' || player.score !== undefined;
+                  const progress = isFinished ? 100 : (player.progress?.progress ?? 0);
+                  const time = player.score ?? player.progress?.elapsed_time ?? Infinity;
+                  return { player, isFinished, progress, time };
+                };
+                
+                // Get all player rankings
+                const playerRankings = playersWithProgress.map(getPlayerRank);
+                
+                // Sort to get positions
+                const sortedRankings = [...playerRankings].sort((a, b) => {
+                  if (a.isFinished && b.isFinished) {
+                    return a.time - b.time; // Lower time = better
                   }
-                  if (aFinished) return -1;
-                  if (bFinished) return 1;
-                  
-                  // Neither finished - sort by progress
-                  return (b.progress?.progress ?? 0) - (a.progress?.progress ?? 0);
+                  if (a.isFinished) return -1;
+                  if (b.isFinished) return 1;
+                  return b.progress - a.progress; // Higher progress = better
                 });
                 
-                const finishedCount = sortedPlayers.filter(p => p.progress?.status === 'finished' || p.score !== undefined).length;
-                const totalPlayers = sortedPlayers.length;
+                // Create position map: playerId -> position (0-indexed)
+                const positionMap = new Map<string, number>();
+                sortedRankings.forEach((ranking, index) => {
+                  positionMap.set(ranking.player.id, index);
+                });
+                
+                const finishedCount = playerRankings.filter(r => r.isFinished).length;
+                const totalPlayers = playersWithProgress.length;
+                const rowHeight = 72; // Height of each row in pixels
                 
                 return (
                   <div className="cyber-card rounded-2xl p-6 neon-border relative overflow-hidden">
@@ -3366,7 +3376,7 @@ const MainStage = () => {
                     {/* Header */}
                     <div className="relative flex items-center justify-between mb-6">
                       <div className="flex items-center gap-3">
-                        <div className="relative">
+                  <div className="relative">
                           <Flag className="w-8 h-8 text-cyan-400" />
                           <div className="absolute inset-0 w-8 h-8 bg-cyan-400/30 blur-lg animate-pulse" />
                         </div>
@@ -3383,38 +3393,44 @@ const MainStage = () => {
                       </div>
                     </div>
                     
-                    {/* Race Track */}
-                    <div className="relative">
-                      {/* Player tracks - using flex layout to prevent overlapping */}
-                      <div className="space-y-4">
-                        {sortedPlayers.map((player, index) => {
-                          // Check if player finished by progress status OR by having a score
-                          const isFinished = player.progress?.status === 'finished' || player.score !== undefined;
-                          // If finished, show at 100%, otherwise use actual progress
-                          const progress = isFinished ? 100 : (player.progress?.progress ?? 0);
-                          const maxProgress = Math.max(...playersWithProgress.map(p => {
-                            const pFinished = p.progress?.status === 'finished' || p.score !== undefined;
-                            return pFinished ? 100 : (p.progress?.progress ?? 0);
-                          }));
-                          const isLeading = progress === maxProgress && progress > 0 && !isFinished;
-                          const finishTime = player.score ?? player.progress?.elapsed_time;
-                          const finishRank = isFinished ? sortedPlayers.filter((p, i) => i < index && (p.progress?.status === 'finished' || p.score !== undefined)).length + 1 : null;
+                    {/* Race Track - Using absolute positioning for smooth transitions */}
+                    <div className="relative" style={{ height: `${totalPlayers * rowHeight}px` }}>
+                      {/* Player tracks - each positioned absolutely and animated */}
+                      {playersWithProgress.map((player) => {
+                        const isFinished = player.progress?.status === 'finished' || player.score !== undefined;
+                        const progress = isFinished ? 100 : (player.progress?.progress ?? 0);
+                        const position = positionMap.get(player.id) ?? 0;
+                        const maxProgress = Math.max(...playerRankings.map(r => r.progress));
+                        const isLeading = progress === maxProgress && progress > 0 && !isFinished;
+                        const finishTime = player.score ?? player.progress?.elapsed_time;
+                        
+                        // Calculate finish rank from sorted rankings
+                        const finishRank = isFinished 
+                          ? sortedRankings.findIndex(r => r.player.id === player.id) + 1 
+                          : null;
 
-                          return (
-                            <div key={player.id} className="flex items-center gap-4 h-14">
+                        return (
+                          <div 
+                            key={player.id} 
+                            className="absolute left-0 right-0 flex items-center gap-4 transition-all duration-500 ease-out"
+                            style={{ 
+                              height: `${rowHeight}px`,
+                              transform: `translateY(${position * rowHeight}px)`,
+                            }}
+                          >
                               {/* Player name - fixed width */}
                               <div className="w-28 flex-shrink-0">
-                                <div className={`px-3 py-1.5 rounded-lg text-sm font-bold font-mono truncate text-center ${
+                                <div className={`px-3 py-1.5 rounded-lg text-sm font-bold font-mono truncate text-center transition-all duration-300 ${
                                   isFinished ? 'bg-emerald-900/90 text-emerald-300 border border-emerald-500/50' : 
                                   isLeading ? 'bg-yellow-900/90 text-yellow-300 border border-yellow-500/50' : 
                                   'bg-slate-900/90 text-slate-300 border border-slate-600/50'
                                 }`}>
-                                  {player.name}
-                                </div>
+                                {player.name}
                               </div>
+                                </div>
                               
                               {/* Track - flexible width */}
-                              <div className="flex-1 relative h-full flex items-center">
+                              <div className="flex-1 relative h-14 flex items-center">
                                 {/* Track background */}
                                 <div className="h-3 w-full bg-slate-800/80 rounded-full overflow-hidden border border-slate-700/50">
                                   <div 
@@ -3427,7 +3443,7 @@ const MainStage = () => {
                                     }`}
                                     style={{ width: `${progress}%` }}
                                   />
-                                </div>
+                              </div>
                                 
                                 {/* Track lines overlay */}
                                 <div className="absolute inset-0 flex items-center pointer-events-none">
@@ -3435,7 +3451,7 @@ const MainStage = () => {
                                     {Array.from({ length: 10 }).map((_, i) => (
                                       <div key={i} className="flex-1 border-r border-slate-600/20 h-full" />
                                     ))}
-                                  </div>
+                            </div>
                                 </div>
                                 
                                 {/* Player avatar on track */}
@@ -3444,10 +3460,10 @@ const MainStage = () => {
                                   style={{ left: `calc(${Math.min(progress, 98)}% - 24px)` }}
                                 >
                                   <div className={`relative ${!isFinished && progress > 0 ? 'animate-bounce' : ''}`}>
-                                    <div className={`absolute inset-0 rounded-full blur-md ${
+                                    <div className={`absolute inset-0 rounded-full blur-md transition-all duration-300 ${
                                       isFinished ? 'bg-emerald-400/50' : isLeading ? 'bg-yellow-400/50' : 'bg-cyan-400/30'
                                     }`} />
-                                    <div className={`relative w-10 h-10 rounded-full overflow-hidden border-2 shadow-lg ${
+                                    <div className={`relative w-10 h-10 rounded-full overflow-hidden border-2 shadow-lg transition-all duration-300 ${
                                       isFinished ? 'border-emerald-400 shadow-emerald-500/50' : isLeading ? 'border-yellow-400 shadow-yellow-500/50' : 'border-slate-500'
                                     }`}>
                                       {player.photo_url ? (
@@ -3455,12 +3471,12 @@ const MainStage = () => {
                                       ) : (
                                         <div className="w-full h-full flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: player.avatar_color }}>
                                           {player.name[0]}
-                                        </div>
-                                      )}
+                              </div>
+                            )}
                                     </div>
                                     {isLeading && !isFinished && <div className="absolute -top-1 -right-1 text-xs">👑</div>}
                                     {isFinished && finishRank && (
-                                      <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                                      <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
                                         finishRank === 1 ? 'bg-yellow-400 text-yellow-900' : 
                                         finishRank === 2 ? 'bg-slate-300 text-slate-800' : 
                                         finishRank === 3 ? 'bg-amber-600 text-white' : 
@@ -3504,10 +3520,9 @@ const MainStage = () => {
                                   </div>
                                 )}
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                          </div>
+                        );
+                      })}
                     </div>
                     
                     {/* Race status footer */}
@@ -3595,7 +3610,7 @@ const MainStage = () => {
                                   {elapsedTime.toFixed(1)}s
                                 </p>
                               )}
-                            </div>
+                          </div>
                           </div>
                           
                           {/* Round results - 5 circles showing W/D/L */}
@@ -3659,17 +3674,17 @@ const MainStage = () => {
                       </p>
                     </div>
                     
-                    <div className="flex items-center gap-3 mb-2">
-                      <Timer className="w-6 h-6 text-purple-400" />
-                      <h2 className="text-xl font-bold text-white font-display">PRECISION PROTOCOL</h2>
-                    </div>
-                    <p className="text-slate-400 mb-4 font-mono">TARGET: 7.700000 SECONDS</p>
+                  <div className="flex items-center gap-3 mb-2">
+                    <Timer className="w-6 h-6 text-purple-400" />
+                    <h2 className="text-xl font-bold text-white font-display">PRECISION PROTOCOL</h2>
+                  </div>
+                  <p className="text-slate-400 mb-4 font-mono">TARGET: 7.700000 SECONDS</p>
                     
                     <div className="grid grid-cols-3 gap-4">
-                      {playersWithProgress.map((player) => {
-                        const isFinished = player.progress?.status === 'finished';
-                        const isPlaying = player.progress?.status === 'playing';
-                        const elapsed = player.progress?.elapsed_time ?? 0;
+                    {playersWithProgress.map((player) => {
+                      const isFinished = player.progress?.status === 'finished';
+                      const isPlaying = player.progress?.status === 'playing';
+                      const elapsed = player.progress?.elapsed_time ?? 0;
                         const extraData = player.progress?.extra_data as { game_phase?: string; trial_time?: number; actual_start_time?: number } | null;
                         const playerPhase = extraData?.game_phase || 'trial';
                         const trialTime = extraData?.trial_time;
@@ -3679,7 +3694,7 @@ const MainStage = () => {
                         const displayTime = isPlayerInActual && !isFinished ? null : elapsed;
                         const diff = displayTime ? Math.abs(displayTime - 7.7) : null;
 
-                        return (
+                      return (
                           <div key={player.id} className={`cyber-card rounded-xl p-4 transition-all text-center ${
                             isFinished ? 'neon-border bg-purple-500/10' : ''
                           }`}>
@@ -3689,16 +3704,16 @@ const MainStage = () => {
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-white text-lg font-bold" style={{ backgroundColor: player.avatar_color }}>
                                   {player.name[0]}
-                                </div>
-                              )}
                             </div>
+                              )}
+                          </div>
                             <p className="text-white font-bold truncate font-mono text-sm mb-2">{player.name}</p>
                             
                             {/* Trial phase - show times */}
                             {!isPlayerInActual && (
                               <>
                                 {isPlaying ? (
-                                  <div className="text-center">
+                          <div className="text-center">
                                     <p className="text-2xl font-mono font-bold text-cyan-400 animate-pulse">
                                       {elapsed.toFixed(2)}s
                                     </p>
@@ -3714,8 +3729,8 @@ const MainStage = () => {
                                     </p>
                                     <p className="text-xs text-slate-400 font-mono">
                                       {diff !== null ? `${diff.toFixed(2)}s off` : 'TRIAL'}
-                                    </p>
-                                  </div>
+                            </p>
+                          </div>
                                 ) : (
                                   <div className="flex items-center justify-center gap-2 text-slate-500">
                                     <div className="w-3 h-3 rounded-full bg-slate-500" />
@@ -3755,10 +3770,10 @@ const MainStage = () => {
                                 )}
                               </>
                             )}
-                          </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                     
                     {/* Phase-specific message */}
                     <div className="mt-6 text-center">
@@ -3898,10 +3913,10 @@ const MainStage = () => {
                   );
                 })() : (
                   <>
-                    <h3 className="text-2xl font-black text-white mb-5 text-center font-display tracking-wide">STANDINGS</h3>
-                    <div className="space-y-3">
-                      {[...playersWithProgress]
-                        .sort((a, b) => {
+                <h3 className="text-2xl font-black text-white mb-5 text-center font-display tracking-wide">STANDINGS</h3>
+                <div className="space-y-3">
+                  {[...playersWithProgress]
+                    .sort((a, b) => {
                           // Stage 2 (RPS): Higher score wins, time as tiebreaker
                           if (currentStage === 2) {
                             const scoreDiff = (b.score ?? 0) - (a.score ?? 0);
@@ -3911,30 +3926,30 @@ const MainStage = () => {
                           }
                           
                           // Stage 1: Lower time wins
-                          const aHasScore = a.score !== undefined;
-                          const bHasScore = b.score !== undefined;
-                          
-                          // Both have scores - sort by score (time) ascending
-                          if (aHasScore && bHasScore) return (a.score!) - (b.score!);
-                          
-                          // Only one has score - that one comes first
-                          if (aHasScore) return -1;
-                          if (bHasScore) return 1;
-                          
-                          // Neither has score - sort by progress descending
-                          return (b.progress?.progress ?? 0) - (a.progress?.progress ?? 0);
-                        })
+                      const aHasScore = a.score !== undefined;
+                      const bHasScore = b.score !== undefined;
+                      
+                      // Both have scores - sort by score (time) ascending
+                      if (aHasScore && bHasScore) return (a.score!) - (b.score!);
+                      
+                      // Only one has score - that one comes first
+                      if (aHasScore) return -1;
+                      if (bHasScore) return 1;
+                      
+                      // Neither has score - sort by progress descending
+                      return (b.progress?.progress ?? 0) - (a.progress?.progress ?? 0);
+                    })
                         .map((player, index) => {
                           const elapsedTime = player.progress?.elapsed_time ?? 0;
                           const isFinished = player.progress?.status === 'finished';
                           
                           return (
-                            <div key={player.id} className={`leaderboard-row flex items-center gap-3 p-3 rounded-xl ${index < activePlayers.length - eliminationCount ? 'safe' : 'danger'}`}>
-                              <span className={`rank-badge w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : 'bg-slate-700 text-white'}`}>{index + 1}</span>
-                              <div className="w-12 h-12 rounded-full overflow-hidden" style={{ borderColor: player.avatar_color, borderWidth: 3 }}>
-                                {player.photo_url ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white text-lg font-bold" style={{ backgroundColor: player.avatar_color }}>{player.name[0]}</div>}
-                              </div>
-                              <span className="flex-1 text-white font-mono text-lg font-bold truncate">{player.name}</span>
+                      <div key={player.id} className={`leaderboard-row flex items-center gap-3 p-3 rounded-xl ${index < activePlayers.length - eliminationCount ? 'safe' : 'danger'}`}>
+                        <span className={`rank-badge w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : 'bg-slate-700 text-white'}`}>{index + 1}</span>
+                        <div className="w-12 h-12 rounded-full overflow-hidden" style={{ borderColor: player.avatar_color, borderWidth: 3 }}>
+                          {player.photo_url ? <img src={player.photo_url} alt={player.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white text-lg font-bold" style={{ backgroundColor: player.avatar_color }}>{player.name[0]}</div>}
+                        </div>
+                        <span className="flex-1 text-white font-mono text-lg font-bold truncate">{player.name}</span>
                               <div className="text-right">
                                 {player.score !== undefined && (
                                   <span className="text-cyan-400 font-black font-mono text-lg block">
@@ -3947,25 +3962,25 @@ const MainStage = () => {
                                     {elapsedTime.toFixed(1)}s
                                   </span>
                                 )}
-                              </div>
+                      </div>
                             </div>
                           );
                         })}
-                    </div>
-                    <p className="text-center text-slate-300 text-lg mt-5 font-mono font-bold">
-                      <span className="text-red-400 font-black text-xl">{eliminationCount}</span> WILL BE TERMINATED
-                    </p>
+                </div>
+                <p className="text-center text-slate-300 text-lg mt-5 font-mono font-bold">
+                  <span className="text-red-400 font-black text-xl">{eliminationCount}</span> WILL BE TERMINATED
+                </p>
 
-                    {/* Finished count */}
-                    {(() => {
-                      const finishedCount = playersWithProgress.filter(p => p.progress?.status === 'finished' || p.score !== undefined).length;
-                      const totalCount = playersWithProgress.length;
-                      return (
-                        <p className="text-center text-slate-400 text-sm mt-2 font-mono">
-                          <span className={finishedCount === totalCount ? 'text-emerald-400' : 'text-yellow-400'}>{finishedCount}/{totalCount}</span> COMPLETED
-                        </p>
-                      );
-                    })()}
+                {/* Finished count */}
+                {(() => {
+                  const finishedCount = playersWithProgress.filter(p => p.progress?.status === 'finished' || p.score !== undefined).length;
+                  const totalCount = playersWithProgress.length;
+                  return (
+                    <p className="text-center text-slate-400 text-sm mt-2 font-mono">
+                      <span className={finishedCount === totalCount ? 'text-emerald-400' : 'text-yellow-400'}>{finishedCount}/{totalCount}</span> COMPLETED
+                    </p>
+                  );
+                })()}
                   </>
                 )}
 
