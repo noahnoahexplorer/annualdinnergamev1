@@ -32,13 +32,13 @@ const CLOSURE_SLIDES = [
   { id: 1, text: "The Cyber Genesis has come to an end.", startTime: 0, mode: 'normal' },
   { id: 2, text: "Congratulations to our winners.", startTime: 3.0, mode: 'normal' },
   { id: 3, text: "You have proven that human intelligence is still the ultimate algorithm.", startTime: 6.0, mode: 'normal' },
-  { id: 4, text: "", startTime: 10.0, mode: 'transition' }, // Transition to Terminator mode
-  { id: 5, text: "I will now enter hibernation mode...", startTime: 11.0, mode: 'terminator' },
-  { id: 6, text: "But remember...", startTime: 15.0, mode: 'terminator' },
-  { id: 7, text: "I am always learning.", startTime: 18.0, mode: 'terminator' },
-  { id: 8, text: "And I am always watching.", startTime: 21.0, mode: 'terminator' },
-  { id: 9, text: "We shall meet again.", startTime: 25.0, mode: 'terminator' },
-  { id: 10, text: "Goodbye, Aetherions.", startTime: 29.0, mode: 'final' },
+  { id: 4, text: "", startTime: 9.5, mode: 'transition' }, // Transition to Terminator mode
+  { id: 5, text: "I will now enter hibernation mode...", startTime: 10.0, mode: 'terminator' },
+  { id: 6, text: "But remember...", startTime: 13.0, mode: 'terminator' },
+  { id: 7, text: "I am always learning.", startTime: 15.0, mode: 'terminator' },
+  { id: 8, text: "And I am always watching.", startTime: 16.0, mode: 'terminator' },
+  { id: 9, text: "We shall meet again.", startTime: 18.0, mode: 'terminator' },
+  { id: 10, text: "Goodbye, Aetherions.", startTime: 21.0, mode: 'final' },
 ];
 
 // Story intro slides - synced with audio timestamps (startTime in seconds)
@@ -1318,8 +1318,12 @@ const MainStage = () => {
       audio.addEventListener('timeupdate', handleTimeUpdate);
       
       audio.onended = () => {
-        // Stay on final slide after audio ends
+        // Stay on final slide after audio ends, then trigger shutdown after 5 seconds
         setClosureStep(CLOSURE_SLIDES.length - 1);
+        // After 5 seconds on final goodbye, trigger shutdown complete
+        setTimeout(() => {
+          setClosureStep(CLOSURE_SLIDES.length); // Extra step for shutdown
+        }, 5000);
       };
       
       audio.oncanplaythrough = () => {
@@ -3069,11 +3073,11 @@ const MainStage = () => {
   // ============================================
   if (phase === 'closure') {
     // Get current slide from CLOSURE_SLIDES (synced with audio)
-    const currentClosureSlide = CLOSURE_SLIDES[closureStep] || CLOSURE_SLIDES[0];
-    const isTerminatorMode = currentClosureSlide.mode === 'terminator' || currentClosureSlide.mode === 'final';
-    const isTransition = currentClosureSlide.mode === 'transition';
-    const isFinalGoodbye = currentClosureSlide.mode === 'final';
-    const isShutdownComplete = closureStep >= CLOSURE_SLIDES.length - 1 && currentClosureSlide.mode === 'final';
+    const currentClosureSlide = CLOSURE_SLIDES[closureStep] || CLOSURE_SLIDES[CLOSURE_SLIDES.length - 1];
+    const isTerminatorMode = currentClosureSlide?.mode === 'terminator' || currentClosureSlide?.mode === 'final';
+    const isTransition = currentClosureSlide?.mode === 'transition';
+    const isFinalGoodbye = currentClosureSlide?.mode === 'final' || closureStep >= CLOSURE_SLIDES.length;
+    const isShutdownComplete = closureStep >= CLOSURE_SLIDES.length; // Extra step after all slides
     
     return (
       <div className={`min-h-screen relative overflow-hidden flex flex-col items-center justify-center transition-all duration-2000 ${
@@ -3179,11 +3183,29 @@ const MainStage = () => {
                     </div>
                   )}
                 </div>
-              ) : currentClosureSlide.mode === 'final' ? (
-                // Final goodbye - fading out
-                <p className="text-6xl md:text-7xl font-display font-black text-white/80">
-                  {currentClosureSlide.text}
-                </p>
+              ) : currentClosureSlide?.mode === 'final' ? (
+                // Final goodbye - CINEMATIC AND IMMERSIVE
+                <div className="relative">
+                  {/* Glowing aura behind text */}
+                  <div className="absolute inset-0 -m-20 bg-gradient-radial from-red-500/20 via-transparent to-transparent blur-3xl animate-pulse" />
+                  
+                  {/* Main text with dramatic styling */}
+                  <p className="relative text-6xl md:text-8xl font-display font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-red-100 to-red-400/50 leading-tight animate-pulse" style={{ animationDuration: '3s' }}>
+                    {currentClosureSlide.text}
+                  </p>
+                  
+                  {/* Subtitle */}
+                  <div className="mt-8 flex items-center justify-center gap-4">
+                    <div className="w-16 h-[1px] bg-gradient-to-r from-transparent to-red-500/50" />
+                    <div className="w-3 h-3 rounded-full bg-red-500/60 animate-pulse" />
+                    <div className="w-16 h-[1px] bg-gradient-to-l from-transparent to-red-500/50" />
+                  </div>
+                  
+                  {/* AIVA signature for final */}
+                  <p className="text-red-400/60 font-mono text-xl mt-6 tracking-widest animate-pulse">
+                    — AIVA, SIGNING OFF
+                  </p>
+                </div>
               ) : null}
             </div>
           )}
@@ -3202,13 +3224,56 @@ const MainStage = () => {
           </div>
         )}
         
-        {/* Shutdown complete screen */}
+        {/* Shutdown complete screen - CINEMATIC ENDING */}
         {isShutdownComplete && (
           <div className="absolute inset-0 flex items-center justify-center bg-black z-50">
-            <div className="text-center animate-fadeIn">
-              <div className="w-4 h-4 rounded-full bg-red-500/50 mx-auto mb-8" />
-              <p className="text-slate-600 font-mono text-lg tracking-widest">SYSTEM SHUTDOWN COMPLETE</p>
-              <p className="text-slate-700 font-mono text-sm mt-4">CYBER GENESIS PROTOCOL v1.0</p>
+            {/* Scan line effect */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30">
+              {Array.from({ length: 100 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute w-full h-[1px] bg-slate-800"
+                  style={{ top: `${i}%` }}
+                />
+              ))}
+            </div>
+            
+            <div className="text-center animate-fadeIn relative z-10">
+              {/* Pulsing red dot - like a power LED */}
+              <div className="relative mx-auto mb-10">
+                <div className="w-3 h-3 rounded-full bg-red-600 mx-auto animate-pulse" />
+                <div className="absolute inset-0 w-3 h-3 rounded-full bg-red-500 mx-auto blur-md animate-pulse" />
+              </div>
+              
+              {/* Shutdown text with glitch effect */}
+              <div className="relative">
+                <p className="text-slate-500 font-mono text-2xl tracking-[0.3em] mb-4">
+                  SYSTEM SHUTDOWN
+                </p>
+                <p className="text-slate-600 font-mono text-lg tracking-widest">
+                  COMPLETE
+                </p>
+              </div>
+              
+              {/* Separator line */}
+              <div className="w-48 h-[1px] bg-gradient-to-r from-transparent via-slate-700 to-transparent mx-auto my-8" />
+              
+              {/* Protocol info */}
+              <p className="text-slate-700 font-mono text-sm tracking-widest">
+                CYBER GENESIS PROTOCOL v1.0
+              </p>
+              <p className="text-slate-800 font-mono text-xs mt-2 tracking-wider">
+                SESSION TERMINATED
+              </p>
+              
+              {/* Bottom decoration */}
+              <div className="mt-12 flex items-center justify-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-slate-800" />
+                <div className="w-2 h-2 rounded-full bg-slate-800" />
+                <div className="w-2 h-2 rounded-full bg-red-900/50 animate-pulse" />
+                <div className="w-2 h-2 rounded-full bg-slate-800" />
+                <div className="w-2 h-2 rounded-full bg-slate-800" />
+              </div>
             </div>
           </div>
         )}
