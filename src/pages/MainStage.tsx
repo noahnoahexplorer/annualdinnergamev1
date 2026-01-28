@@ -815,6 +815,9 @@ const MainStage = () => {
 
   // Play intro audio and sync slides with audio timestamps
   useEffect(() => {
+    // Don't start audio until loading is complete and phase is confirmed
+    // This prevents the race condition where audio starts before round_number is known
+    if (loading) return;
     if (phase !== 'story-intro') return;
     
     // Only start audio once
@@ -890,7 +893,7 @@ const MainStage = () => {
     return () => {
       if (storyTimerRef.current) clearTimeout(storyTimerRef.current);
     };
-  }, [phase, introAudioPlaying]);
+  }, [phase, introAudioPlaying, loading]);
   
   // Cleanup audio when leaving story-intro phase
   useEffect(() => {
